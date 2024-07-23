@@ -907,7 +907,14 @@
             var val = tokens.map(function(token){
                 return token.string;
             });
-            return wrap('del', val, opIndex, dataPrefix, className);
+            const res = wrap("del", val, opIndex, dataPrefix, className);
+
+            // handling cases like deleted </p><p>
+            if (/^<\/.+?><.+?>$/.exec(res) && !res.includes("del")) {
+                return `<del>${val.slice(1, val.length - 1).join("")}</del>`;
+            }
+
+            return res;
         },
         'replace': function(){
             return OPS['delete'].apply(null, arguments) + OPS['insert'].apply(null, arguments);
