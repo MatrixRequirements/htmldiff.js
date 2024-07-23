@@ -107,5 +107,22 @@ describe('htmlToTokens', function(){
             expect(cut('<p><script>console.log("hi");</script></p>')).eql(
                     tokenize(['<p>', '<script>console.log("hi");</script>', '</p>']));
         });
+
+
+
+        it('should identify tags with data-htmldiff-id attribute as single token', () => {
+            expect(
+                cut('<div><customtag data-htmldiff-id="1">hello</br>goodbye</customtag>' +
+                    '<custom-tag data-htmldiff-id="2">some stuff</custom-tag>' +
+                    '</div>')
+            ).eql(tokenize(
+                [
+                    '<div>',
+                    '<customtag data-htmldiff-id="1">hello</br>goodbye</customtag>',
+                    '<custom-tag data-htmldiff-id="2">some stuff</custom-tag>',
+                    '</div>'
+                ]
+            ));
+        });
     });
 });

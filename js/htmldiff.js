@@ -71,6 +71,7 @@
     var atomicTagsRegExp;
     // Added head and style (for style tags inside the body)
     var defaultAtomicTagsRegExp = new RegExp('^<(iframe|object|math|svg|script|video|head|style|a)\\b');
+    const dataHtmlDiffIdRegExp = /^<([a-z\-]+).+data-htmldiff-id=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))*.)["']?/;
     
     /**
      * Checks if the current word is the beginning of an atomic tag. An atomic tag is one whose
@@ -83,7 +84,7 @@
      *    null otherwise
      */
     function isStartOfAtomicTag(word){
-        var result = atomicTagsRegExp.exec(word);
+        var result = atomicTagsRegExp.exec(word) || dataHtmlDiffIdRegExp.exec(word);
         return result && result[1];
     }
 
@@ -317,6 +318,12 @@
         var iframe = /^<iframe.*src=['"]([^"']*)['"].*>/.exec(token);
         if (iframe) {
             return '<iframe src="' + iframe[1] + '"></iframe>';
+        }
+
+        // if the token has data-htmldiff-uuid use it as a key
+        const uuidTag = dataHtmlDiffIdRegExp.exec(token);
+        if (uuidTag) {
+            return uuidTag[2];
         }
 
         // If the token is any other element, just grab the tag name.
