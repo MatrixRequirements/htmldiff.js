@@ -19,7 +19,6 @@
     "bugs": {
         "url": "https://github.com/MatrixRequirements/htmldiff.js/issues"
     },
-    "private": false,
     "license": "MIT",
     "main": "js/htmldiff.js",
     "bin": {
