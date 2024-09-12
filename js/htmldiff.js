@@ -332,9 +332,9 @@
             return '<' + (tagName[1].toLowerCase()) + '>';
         }
 
-        // Otherwise, the token is text, collapse the whitespace.
+        // Otherwise, the token is text, collapse the whitespace (except new lines)
         if (token) {
-            return token.replace(/(\s+|&nbsp;|&#160;)/g, ' ');
+            return token.replace(/([^\S\r\n]+|&nbsp;|&#160;)/g, ' ');
         }
         return token;
     }
