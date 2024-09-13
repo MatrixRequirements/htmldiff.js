@@ -29,5 +29,13 @@ BNXOISAN'FOSER3154
 5SSDC</ins></div>`;
 
         expect(diff(before, after)).to.eql(res);
-    })
+    });
+
+    it('adds data-inserted="true" to inserted tags', () => {
+        const before = `<div>some content</div>`;
+        const after = `<div><strong>some content</strong></div>`;
+        const res = `<div><strong data-inserted="true">some content</strong></div>`;
+
+        expect(diff(before, after)).to.eql(res);
+    });
 });

@@ -910,7 +910,15 @@
             var val = tokens.map(function(token){
                 return token.string;
             });
-            return wrap('ins', val, opIndex, dataPrefix, className);
+
+            const res = wrap('ins', val, opIndex, dataPrefix, className);
+
+            // handling inserted tags, see https://matrixreq.atlassian.net/browse/MATRIX-7876
+            if (/^<[^.\/]+?>$/.exec(res)) {
+                return `${res.slice(0, res.length - 1)} data-inserted="true">`;
+            }
+
+            return res;
         },
         'delete': function(op, beforeTokens, afterTokens, opIndex, dataPrefix, className){
             var tokens = beforeTokens.slice(op.startInBefore, op.endInBefore + 1);
