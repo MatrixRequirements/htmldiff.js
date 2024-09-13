@@ -332,9 +332,12 @@
             return '<' + (tagName[1].toLowerCase()) + '>';
         }
 
-        // Otherwise, the token is text, collapse the whitespace.
+        // Otherwise, the token is text, collapse the whitespace
+        // (except new lines, see https://matrixreq.atlassian.net/browse/MATRIX-7880)
+        // potentially, this also causing the problems with prettified HTML (with "\n" between the tags),
+        // so it's required to "flatten" html before passing it to the diffing function
         if (token) {
-            return token.replace(/(\s+|&nbsp;|&#160;)/g, ' ');
+            return token.replace(/([^\S\r\n]+|&nbsp;|&#160;)/g, ' ');
         }
         return token;
     }

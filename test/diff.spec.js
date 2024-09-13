@@ -29,9 +29,9 @@ describe('Diff', function(){
   
     describe('Whitespace differences', function(){
       it('should collapse adjacent whitespace', function(){
-        expect(cut('Much \n\t    spaces', 'Much spaces')).to.equal('Much spaces');
+        expect(cut('Much \t    spaces', 'Much spaces')).to.equal('Much spaces');
       });
-  
+
       it('should consider non-breaking spaces as equal', function(){
         expect(cut('Hello&nbsp;world', 'Hello&#160;world')).to.equal('Hello&#160;world');
       });
