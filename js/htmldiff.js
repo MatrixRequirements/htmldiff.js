@@ -919,7 +919,7 @@
             });
             const res = wrap("del", val, opIndex, dataPrefix, className);
 
-            // handling cases like deleted </p><p>
+            // handling cases like deleted </p><p>, see https://matrixreq.atlassian.net/browse/MATRIX-7688
             if (/^<\/.+?><.+?>$/.exec(res) && !res.includes("del")) {
                 return `<del>${val.slice(1, val.length - 1).join("")}</del>`;
             }
