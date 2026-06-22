@@ -163,14 +163,15 @@ describe('renderOperations', function(){
                     '<ins data-operation-index="0">new<br/></ins> text');
         });
 
-        it('should wrap atomic tags', function(){
+        it('should wrap atomic tags independently', function(){
             var before = tokenize(['old', '<iframe src="source.html"></iframe>', ' ', 'text']);
             var after = tokenize(['new', ' ', 'text']);
 
             res = cut(before, after);
 
             expect(res).to.equal(
-                    '<del data-operation-index="0">old<iframe src="source.html"></iframe></del>' +
+                    '<del data-operation-index="0">old</del>' +
+                    '<del data-operation-index="0"><iframe src="source.html"></iframe></del>' +
                     '<ins data-operation-index="0">new</ins> text');
         });
     });

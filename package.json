@@ -1,60 +1,60 @@
 {
-    "name": "@matrixreq/htmldiff",
-    "description": "Diff and markup HTML with <ins> and <del> tags",
-    "companyname": "Matrix Requirements",
-    "version": "1.2.0",
-    "keywords": [
-        "diff",
-        "html",
-        "htmldiff",
-        "ins",
-        "del"
-    ],
-    "homepage": "https://github.com/MatrixRequirements/htmldiff.js",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/MatrixRequirements/htmldiff.js"
-    },
-    "readme": "README.md",
-    "bugs": {
-        "url": "https://github.com/MatrixRequirements/htmldiff.js/issues"
-    },
-    "license": "MIT",
-    "main": "js/htmldiff.js",
-    "bin": {
-        "htmldiff": "./htmldiff-cli.js"
-    },
-    "files": [
-        "js/htmldiff.js",
-        "js/htmldiff.d.ts",
-        "sample/*",
-        "test/*",
-        "htmldiff-cli.js"
-    ],
-    "types": "js/htmldiff.d.ts",
-    "dependencies": {},
-    "devDependencies": {
-        "@types/node": "18.7.11",
-        "@typescript-eslint/eslint-plugin": "5.34.0",
-        "@typescript-eslint/parser": "5.34.0",
-        "chai": "*",
-        "eslint": "8.22.0",
-        "eslint-plugin-jsdoc": "39.3.6",
-        "pkg": "5.8.0",
-        "typescript": "4.7.4",
-        "mocha": "*"
-    },
-    "scripts": {
-        "test": "mocha -R min",
-        "testsample": "node htmldiff-cli.js sample/before.html sample/after.html - -c myDiffClass -p myPrefix",
-        "lint": "eslint -c eslintrc.json --parser-options=project:./tsconfig.json --ext .ts ./",
-        "premake": "npm run lint",
-        "make": "tsc -p tsconfig.json && node -e \"require('fs').unlinkSync('./htmldiff-cli.d.ts')\"",
-        "pack-macos-aarch64": "pkg -t node18-macos-arm64       -C GZip --output ./bin/macos-aarch64/htmldiff-cli htmldiff-cli.js -c ./pkg.json",
-        "pack-macos-x64": "    pkg -t node18-macos-x64         -C GZip --output ./bin/macos-x64/htmldiff-cli     htmldiff-cli.js -c ./pkg.json",
-        "pack-win32-x64": "    pkg -t node18-win32-x64         -C GZip --output ./bin/win32-x64/htmldiff-cli     htmldiff-cli.js -c ./pkg.json",
-        "pack-linux-x64": "    pkg -t node18-linuxstatic-x64   -C GZip --output ./bin/linux-x64/htmldiff-cli     htmldiff-cli.js -c ./pkg.json",
-        "pack-linux-aarch64": "pkg -t node18-linuxstatic-arm64 -C GZip --output ./bin/linux-aarch64/htmldiff-cli htmldiff-cli.js -c ./pkg.json",
-        "pack-all": "npm run pack-macos-aarch64 && npm run pack-macos-x64 && npm run pack-win32-x64 && npm run pack-linux-x64 && npm run pack-linux-aarch64"
-    }
+  "name": "@matrixreq/htmldiff",
+  "description": "Diff and markup HTML with <ins> and <del> tags",
+  "companyname": "Matrix Requirements",
+  "version": "1.3.0",
+  "keywords": [
+    "diff",
+    "html",
+    "htmldiff",
+    "ins",
+    "del"
+  ],
+  "homepage": "https://github.com/MatrixRequirements/htmldiff.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MatrixRequirements/htmldiff.js"
+  },
+  "readme": "README.md",
+  "bugs": {
+    "url": "https://github.com/MatrixRequirements/htmldiff.js/issues"
+  },
+  "license": "MIT",
+  "main": "js/htmldiff.js",
+  "bin": {
+    "htmldiff": "./htmldiff-cli.js"
+  },
+  "files": [
+    "js/htmldiff.js",
+    "js/htmldiff.d.ts",
+    "sample/*",
+    "test/*",
+    "htmldiff-cli.js"
+  ],
+  "types": "js/htmldiff.d.ts",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "18.7.11",
+    "@typescript-eslint/eslint-plugin": "5.34.0",
+    "@typescript-eslint/parser": "5.34.0",
+    "chai": "*",
+    "eslint": "8.22.0",
+    "eslint-plugin-jsdoc": "39.3.6",
+    "pkg": "5.8.0",
+    "typescript": "4.7.4",
+    "mocha": "*"
+  },
+  "scripts": {
+    "test": "mocha -R min",
+    "testsample": "node htmldiff-cli.js sample/before.html sample/after.html - -c myDiffClass -p myPrefix",
+    "lint": "eslint -c eslintrc.json --parser-options=project:./tsconfig.json --ext .ts ./",
+    "premake": "npm run lint",
+    "make": "tsc -p tsconfig.json && node -e \"require('fs').unlinkSync('./htmldiff-cli.d.ts')\"",
+    "pack-macos-aarch64": "pkg -t node18-macos-arm64       -C GZip --output ./bin/macos-aarch64/htmldiff-cli htmldiff-cli.js -c ./pkg.json",
+    "pack-macos-x64": "    pkg -t node18-macos-x64         -C GZip --output ./bin/macos-x64/htmldiff-cli     htmldiff-cli.js -c ./pkg.json",
+    "pack-win32-x64": "    pkg -t node18-win32-x64         -C GZip --output ./bin/win32-x64/htmldiff-cli     htmldiff-cli.js -c ./pkg.json",
+    "pack-linux-x64": "    pkg -t node18-linuxstatic-x64   -C GZip --output ./bin/linux-x64/htmldiff-cli     htmldiff-cli.js -c ./pkg.json",
+    "pack-linux-aarch64": "pkg -t node18-linuxstatic-arm64 -C GZip --output ./bin/linux-aarch64/htmldiff-cli htmldiff-cli.js -c ./pkg.json",
+    "pack-all": "npm run pack-macos-aarch64 && npm run pack-macos-x64 && npm run pack-win32-x64 && npm run pack-linux-x64 && npm run pack-linux-aarch64"
+  }
 }
