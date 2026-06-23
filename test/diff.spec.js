@@ -226,7 +226,7 @@ describe('Diff', function(){
 
       it('should not merge atomic tag with adjacent text in same ins/del', function(){
         var result = cut('hello world', 'hello<iframe src="a.html"></iframe>world');
-        expect(result).to.contain('<ins data-operation-index="1"><iframe src="a.html"></iframe></ins>');
+        expect(result).to.equal('hello<ins data-operation-index="1"><iframe src="a.html"></iframe></ins>world');
       });
 
       it('should wrap inserted <b> content inside the tag, not in a standalone ins', function(){
