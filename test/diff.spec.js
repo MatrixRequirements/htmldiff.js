@@ -206,5 +206,54 @@ describe('Diff', function(){
         });
       });
     }); // describe('iframe Differences')
-    
+
+    describe('Adjacent atomic tag combining', function(){
+      it('should wrap each inserted atomic tag independently when multiple are inserted', function(){
+        var result = cut('', '<iframe src="a.html"></iframe><iframe src="b.html"></iframe>');
+        expect(result).to.equal(
+          '<ins data-operation-index="0"><iframe src="a.html"></iframe></ins>' +
+          '<ins data-operation-index="0"><iframe src="b.html"></iframe></ins>'
+        );
+      });
+
+      it('should wrap each deleted atomic tag independently when multiple are deleted', function(){
+        var result = cut('<iframe src="a.html"></iframe><iframe src="b.html"></iframe>', '');
+        expect(result).to.equal(
+          '<del data-operation-index="0"><iframe src="a.html"></iframe></del>' +
+          '<del data-operation-index="0"><iframe src="b.html"></iframe></del>'
+        );
+      });
+
+      it('should not merge atomic tag with adjacent text in same ins/del', function(){
+        var result = cut('hello world', 'hello<iframe src="a.html"></iframe>world');
+        expect(result).to.equal('hello<ins data-operation-index="1"><iframe src="a.html"></iframe></ins>world');
+      });
+
+      it('should wrap inserted <b> content inside the tag, not in a standalone ins', function(){
+        var result = cut('', '<b>hello</b>');
+        expect(result).to.equal(
+          '<b data-diff-node="ins" data-operation-index="0"><ins data-operation-index="0">hello</ins></b>'
+        );
+      });
+
+      it('should mark non-atomic container tags with data-diff-node rather than wrapping with ins', function(){
+        var result = cut('', '<li><div>content</div></li>');
+        expect(result).to.equal(
+          '<li data-diff-node="ins" data-operation-index="0">' +
+            '<div data-diff-node="ins" data-operation-index="0">' +
+              '<ins data-operation-index="0">content</ins>' +
+            '</div>' +
+          '</li>'
+        );
+      });
+
+      it('should keep adjacent inserted <b> tags as separate segments', function(){
+        var result = cut('', '<b>hello</b><b>world</b>');
+        expect(result).to.equal(
+          '<b data-diff-node="ins" data-operation-index="0"><ins data-operation-index="0">hello</ins></b>' +
+          '<b data-diff-node="ins" data-operation-index="0"><ins data-operation-index="0">world</ins></b>'
+        );
+      });
+    }); // describe('Adjacent atomic tag combining')
+
   }); // describe('Diff')

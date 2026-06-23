@@ -823,7 +823,11 @@
                 data.status = notes[index].isWrappable;
             }
             var status = notes[index].isWrappable;
-            if (status !== data.status){
+
+            // Handling atomic tags wrapping independently
+            // each atomic tag is wrapped with their own ins/del tags
+            var isAtomic = isStartOfAtomicTag(token);
+            if (status !== data.status || (isAtomic && index > data.lastIndex) || data.lastWasAtomic){
                 data.list.push({
                     isWrappable: data.status,
                     tokens: tokens.slice(data.lastIndex, index)
@@ -831,6 +835,9 @@
                 data.lastIndex = index;
                 data.status = status;
             }
+            // tracking if the last token was an atomic tag
+            // if so then we break the segment and wrap them
+            data.lastWasAtomic = isAtomic;
             if (index === tokens.length - 1){
                 data.list.push({
                     isWrappable: data.status,
@@ -838,7 +845,7 @@
                 });
             }
             return data;
-        }, {list: [], status: null, lastIndex: 0}).list;
+        }, {list: [], status: null, lastIndex: 0, lastWasAtomic: false}).list;
 
         return segments.map(mapFn).join('');
     };
