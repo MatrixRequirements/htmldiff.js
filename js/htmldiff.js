@@ -219,6 +219,8 @@
                     break;
                 case 'atomic_tag':
                     currentWord += char;
+                    // track the same name nested tags depth; 
+                    // end the atomic token only when it returns to 0.
                     if (isEndOfTag(char)){
                         var closedTag = lastClosedTag(currentWord);
                         if (closedTag && isClosingTagOf(closedTag, currentAtomicTag)){
