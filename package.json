@@ -2,7 +2,7 @@
     "name": "@matrixreq/htmldiff",
     "description": "Diff and markup HTML with <ins> and <del> tags",
     "companyname": "Matrix Requirements",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "keywords": [
         "diff",
         "html",
