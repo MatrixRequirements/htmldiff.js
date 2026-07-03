@@ -135,7 +135,6 @@ describe('htmlToTokens', function(){
             });
 
             it('should not close early on the first inner closing tag', function(){
-        
                 var atomic = '<span data-htmldiff-id="1"><span>a</span><span>b</span></span>';
                 expect(cut(atomic)).eql(tokenize([atomic]));
             });
@@ -148,6 +147,11 @@ describe('htmlToTokens', function(){
 
             it('should ignore self-closing same-named children when counting depth', function(){
                 var atomic = '<span data-htmldiff-id="1">x<span/>y</span>';
+                expect(cut(atomic)).eql(tokenize([atomic]));
+            });
+
+            it('should ignore self-closing same-named children written with a space (<span />)', function(){
+                var atomic = '<span data-htmldiff-id="1">x<span />y</span>';
                 expect(cut(atomic)).eql(tokenize([atomic]));
             });
 

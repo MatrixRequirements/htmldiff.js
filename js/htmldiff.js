@@ -88,31 +88,26 @@
         return result && result[1];
     }
 
-    /**
-     * Returns the just-closed tag (substring from the last '<') only when it is a clean
-     * single tag, so a stray '>' in text (e.g. "a > b" in a <script>) is not seen as a tag.
-     *
-     * @param {string} word The atomic token read so far, ending in '>'.
-     * @return {string|null} The tag text, or null if not a clean tag.
-     */
-    function lastClosedTag(word){
-        var tagText = word.substring(word.lastIndexOf('<'));
-        return tagText.indexOf('>') === tagText.length - 1 ? tagText : null;
-    }
+    // inspect the last tag in word (from its opening '<'); to an earlier '>' in that
+    // slice means loose text e.g. "a > b" in a <script>, not a tag, so they bail out.
 
     /**
-     * @return {boolean} True if tagText is a closing tag for the given atomic tag name.
-     */
-    function isClosingTagOf(tagText, tag){
-        return new RegExp('^</' + tag + '(\\s|>)').test(tagText);
-    }
-
-    /**
-     * @return {boolean} True if tagText is an opening (non-self-closing) tag for the given
+     * @return {boolean} True if word ends with an opening (non-self-closing) tag for the given
      *    atomic tag name.
      */
-    function isOpeningTagOf(tagText, tag){
+    function isOpeningTagOf(word, tag){
+        var tagText = word.substring(word.lastIndexOf('<'));
+        if (tagText.indexOf('>') !== tagText.length - 1) return false;
         return new RegExp('^<' + tag + '(\\s|>)').test(tagText) && !/\/>$/.test(tagText);
+    }
+
+    /**
+     * @return {boolean} True if word ends with a closing tag for the given atomic tag name.
+     */
+    function isClosingTagOf(word, tag){
+        var tagText = word.substring(word.lastIndexOf('<'));
+        if (tagText.indexOf('>') !== tagText.length - 1) return false;
+        return new RegExp('^</' + tag + '(\\s|>)').test(tagText);
     }
 
     /**
@@ -222,8 +217,7 @@
                     // track the same name nested tags depth; 
                     // end the atomic token only when it returns to 0.
                     if (isEndOfTag(char)){
-                        var closedTag = lastClosedTag(currentWord);
-                        if (closedTag && isClosingTagOf(closedTag, currentAtomicTag)){
+                        if (isClosingTagOf(currentWord, currentAtomicTag)){
                             currentAtomicTagDepth--;
                             if (currentAtomicTagDepth <= 0){
                                 words.push(createToken(currentWord));
@@ -232,7 +226,7 @@
                                 currentAtomicTagDepth = 0;
                                 mode = 'char';
                             }
-                        } else if (closedTag && isOpeningTagOf(closedTag, currentAtomicTag)){
+                        } else if (isOpeningTagOf(currentWord, currentAtomicTag)){
                             currentAtomicTagDepth++;
                         }
                     }
