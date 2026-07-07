@@ -89,17 +89,30 @@
     }
 
     /**
-     * Checks if the current word is the end of an atomic tag (i.e. it has all the characters,
-     * except for the end bracket of the closing tag, such as '<iframe></iframe').
-     *
-     * @param {string} word The characters of the current token read so far.
-     * @param {string} tag The ending tag to look for.
-     *
-     * @return {boolean} True if the word is now a complete token (including the end tag),
-     *    false otherwise.
+     * Inspects the last tag in the given string its slice from the final '<'. A '>' before the slice's end
+     * means text follows e.g. "a > b" in a <script>, not a clean tag, so returns false.
+     * @return {boolean} True if word ends with an opening (non-self-closing) tag for the given
+     *    tag name.
      */
-    function isEndOfAtomicTag(word, tag){
-        return word.substring(word.length - tag.length - 2) === ('</' + tag);
+    function isOpeningTagOf(word, tag){
+        var tagText = word.substring(word.lastIndexOf('<'));
+        if (tagText.indexOf('>') !== tagText.length - 1) {
+            return false;
+        }
+        return new RegExp('^<' + tag + '(\\s|>)').test(tagText) && !/\/>$/.test(tagText);
+    }
+
+    /**
+     * Inspects the last tag in the given string its slice from the final '<'. A '>' before the slice's end
+     * means text follows e.g. "a > b" in a <script>, not a clean tag, so returns false.
+     * @return {boolean} True if word ends with a closing tag for the given tag name.
+     */
+    function isClosingTagOf(word, tag){
+        var tagText = word.substring(word.lastIndexOf('<'));
+        if (tagText.indexOf('>') !== tagText.length - 1) {
+            return false;
+        }
+        return new RegExp('^</' + tag + '(\\s|>)').test(tagText);
     }
 
     /**
@@ -175,6 +188,7 @@
         var mode = 'char';
         var currentWord = '';
         var currentAtomicTag = '';
+        var currentAtomicTagDepth = 0;
         var words = [];
         for (var i = 0; i < html.length; i++){
             var char = html[i];
@@ -184,6 +198,8 @@
                     if (atomicTag){
                         mode = 'atomic_tag';
                         currentAtomicTag = atomicTag;
+                        // skip standalone tags like <script> and <style>
+                        currentAtomicTagDepth = isEndOfTag(char) ? 1 : 0;
                         currentWord += char;
                     } else if (isStartofHTMLComment(currentWord)){
                         mode = 'html_comment';
@@ -202,14 +218,22 @@
                     }
                     break;
                 case 'atomic_tag':
-                    if (isEndOfTag(char) && isEndOfAtomicTag(currentWord, currentAtomicTag)){
-                        currentWord += '>';
-                        words.push(createToken(currentWord));
-                        currentWord = '';
-                        currentAtomicTag = '';
-                        mode = 'char';
-                    } else {
-                        currentWord += char;
+                    currentWord += char;
+                    // track the same name nested tags depth; 
+                    // end the atomic token only when it returns to 0.
+                    if (isEndOfTag(char)){
+                        if (isClosingTagOf(currentWord, currentAtomicTag)){
+                            currentAtomicTagDepth--;
+                            if (currentAtomicTagDepth <= 0){
+                                words.push(createToken(currentWord));
+                                currentWord = '';
+                                currentAtomicTag = '';
+                                currentAtomicTagDepth = 0;
+                                mode = 'char';
+                            }
+                        } else if (isOpeningTagOf(currentWord, currentAtomicTag)){
+                            currentAtomicTagDepth++;
+                        }
                     }
                     break;
                 case 'html_comment':

@@ -124,5 +124,42 @@ describe('htmlToTokens', function(){
                 ]
             ));
         });
+
+        describe('nested atomic tags wrapping', function(){
+            it('should keep a data-htmldiff-id wrapper with nested same-tag children as one token', function(){
+                var atomic = '<span data-htmldiff-id="u1">' +
+                        '<span class="tooltip"><span class="avatar">AB</span></span>' +
+                        'Name</span>';
+                expect(cut('<div>' + atomic + '</div>')).eql(
+                        tokenize(['<div>', atomic, '</div>']));
+            });
+
+            it('should not close early on the first inner closing tag', function(){
+                var atomic = '<span data-htmldiff-id="1"><span>a</span><span>b</span></span>';
+                expect(cut(atomic)).eql(tokenize([atomic]));
+            });
+
+            it('should not treat a stray ">" in script content as a tag boundary', function(){
+                var atomic = '<script>if (a > b) { return a > 0; }</script>';
+                expect(cut('<p>' + atomic + '</p>')).eql(
+                        tokenize(['<p>', atomic, '</p>']));
+            });
+
+            it('should ignore self-closing same-named children when counting depth', function(){
+                var atomic = '<span data-htmldiff-id="1">x<span/>y</span>';
+                expect(cut(atomic)).eql(tokenize([atomic]));
+            });
+
+            it('should ignore self-closing same-named children written with a space (<span />)', function(){
+                var atomic = '<span data-htmldiff-id="1">x<span />y</span>';
+                expect(cut(atomic)).eql(tokenize([atomic]));
+            });
+
+            it('should not bump depth on differently-named tags that share a prefix', function(){
+                // a tag must not be matched by an atomic tag named "a" appearing as <article>.
+                var atomic = '<a href="x"><article>hi</article></a>';
+                expect(cut(atomic)).eql(tokenize([atomic]));
+            });
+        });
     });
 });
