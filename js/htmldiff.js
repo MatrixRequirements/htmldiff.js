@@ -88,25 +88,30 @@
         return result && result[1];
     }
 
-    // inspect the last tag in word (from its opening '<'); to an earlier '>' in that
-    // slice means loose text e.g. "a > b" in a <script>, not a tag, so they bail out.
-
     /**
+     * Inspects the last tag in the given string its slice from the final '<'. A '>' before the slice's end
+     * means text follows e.g. "a > b" in a <script>, not a clean tag, so returns false.
      * @return {boolean} True if word ends with an opening (non-self-closing) tag for the given
-     *    atomic tag name.
+     *    tag name.
      */
     function isOpeningTagOf(word, tag){
         var tagText = word.substring(word.lastIndexOf('<'));
-        if (tagText.indexOf('>') !== tagText.length - 1) return false;
+        if (tagText.indexOf('>') !== tagText.length - 1) {
+            return false;
+        }
         return new RegExp('^<' + tag + '(\\s|>)').test(tagText) && !/\/>$/.test(tagText);
     }
 
     /**
-     * @return {boolean} True if word ends with a closing tag for the given atomic tag name.
+     * Inspects the last tag in the given string its slice from the final '<'. A '>' before the slice's end
+     * means text follows e.g. "a > b" in a <script>, not a clean tag, so returns false.
+     * @return {boolean} True if word ends with a closing tag for the given tag name.
      */
     function isClosingTagOf(word, tag){
         var tagText = word.substring(word.lastIndexOf('<'));
-        if (tagText.indexOf('>') !== tagText.length - 1) return false;
+        if (tagText.indexOf('>') !== tagText.length - 1) {
+            return false;
+        }
         return new RegExp('^</' + tag + '(\\s|>)').test(tagText);
     }
 
