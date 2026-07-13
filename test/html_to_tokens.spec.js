@@ -161,5 +161,40 @@ describe('htmlToTokens', function(){
                 expect(cut(atomic)).eql(tokenize([atomic]));
             });
         });
+
+        describe('tags sharing a prefix with atomic tag names', function(){
+            it('should not treat <abbr> as the atomic tag a', function(){
+                expect(cut('<abbr>x</abbr> tail')).eql(
+                        tokenize(['<abbr>', 'x', '</abbr>', ' ', 'tail']));
+            });
+
+            it('should not treat <article> as the atomic tag a', function(){
+                expect(cut('<article>hi</article>')).eql(
+                        tokenize(['<article>', 'hi', '</article>']));
+            });
+        });
+
+        describe('self-closing atomic tags', function(){
+            it('should end a self-closing data-htmldiff-id tag without swallowing trailing content', function(){
+                expect(cut('<div data-htmldiff-id="s"/>x old')).eql(
+                        tokenize(['<div data-htmldiff-id="s"/>', 'x', ' ', 'old']));
+            });
+
+            it('should end a self-closing name-based atomic tag without swallowing trailing content', function(){
+                expect(cut('<svg/>tail')).eql(tokenize(['<svg/>', 'tail']));
+            });
+        });
+
+        describe('void atomic tags', function(){
+            it('should end a void data-htmldiff-id tag written without a slash', function(){
+                expect(cut('<img data-htmldiff-id="1" src="a.jpg"> tail')).eql(
+                        tokenize(['<img data-htmldiff-id="1" src="a.jpg">', ' ', 'tail']));
+            });
+
+            it('should end a void data-htmldiff-id br tag without swallowing trailing content', function(){
+                expect(cut('<br data-htmldiff-id="x">y')).eql(
+                        tokenize(['<br data-htmldiff-id="x">', 'y']));
+            });
+        });
     });
 });

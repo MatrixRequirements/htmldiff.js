@@ -69,7 +69,10 @@
      * @see function diff.
      */
     // Added head and style (for style tags inside the body)
-    var defaultAtomicTagsRegExp = new RegExp('^<(iframe|object|math|svg|script|video|head|style|a)\\b');
+    // The tag name must be followed by a delimiter (not a \b word boundary): the tokenizer
+    // matches against partially read tags, and a word boundary would match at the end of an
+    // incomplete name, e.g. detecting '<abbr>' as the atomic tag 'a' while reading '<a'.
+    var defaultAtomicTagsRegExp = new RegExp('^<(iframe|object|math|svg|script|video|head|style|a)[\\s/>]');
     var atomicTagsRegExp = defaultAtomicTagsRegExp;
     const dataHtmlDiffIdRegExp = /^<([a-z\-]+).+data-htmldiff-id=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))*.)["']?/;
 
@@ -98,7 +101,7 @@
     // Atomic tags used inside a recursive inner diff unless the element overrides them via
     // data-htmldiff-inner-diff-atomic-tags: the default list without 'a'.
     var defaultInnerDiffAtomicTagsRegExp =
-        new RegExp('^<(iframe|object|math|svg|script|video|head|style)\\b');
+        new RegExp('^<(iframe|object|math|svg|script|video|head|style)[\\s/>]');
 
     // Matches no tag at all: used when data-htmldiff-inner-diff-atomic-tags is empty.
     const noAtomicTagsRegExp = /^<(?!)/;
@@ -118,7 +121,8 @@
      * @return {RegExp} The regular expression matching the start of those tags.
      */
     function buildAtomicTagsRegExp(atomicTags){
-        return new RegExp('^<(' + atomicTags.replace(/\s*/g, '').replace(/,/g, '|') + ')\\b');
+        // Require a delimiter after the name (see defaultAtomicTagsRegExp on why not \b).
+        return new RegExp('^<(' + atomicTags.replace(/\s*/g, '').replace(/,/g, '|') + ')[\\s/>]');
     }
     
     /**
@@ -172,6 +176,20 @@
      */
     function isVoidTag(token){
         return /^\s*<[^>]+\/>\s*$/.test(token);
+    }
+
+    /**
+     * Checks if a tag name is an HTML void element. Void elements cannot have content and can skip a
+     * closing tag, so an atomic element with a void tag name ends with its opening tag -
+     * with or without the XML style '/>'.
+     *
+     * @param {string} tag The tag name to check.
+     *
+     * @return {boolean} True if the tag name is a void element.
+     */
+    function isVoidTagName(tag){
+        return /^(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/
+            .test(tag);
     }
 
     /**
@@ -242,8 +260,19 @@
             var char = html[i];
             switch (mode){
                 case 'tag':
-                    var atomicTag = isStartOfAtomicTag(currentWord);
-                    if (atomicTag){
+                    // The atomic tag regexps require a delimiter after the tag name, so the
+                    // current character must be included in the check: without it a tag
+                    // ending right at the name (e.g. '<script' + '>') would never match.
+                    var atomicTag = isStartOfAtomicTag(currentWord + char);
+                    if (atomicTag && isEndOfTag(char) &&
+                            (isVoidTagName(atomicTag) || /\/$/.test(currentWord))){
+                        // The atomic tag itself is void or self-closing: it has no content
+                        // that could be swallowed, emit it as a complete token.
+                        currentWord += '>';
+                        words.push(createToken(currentWord));
+                        currentWord = '';
+                        mode = 'char';
+                    } else if (atomicTag){
                         mode = 'atomic_tag';
                         currentAtomicTag = atomicTag;
                         // skip standalone tags like <script> and <style>
@@ -279,6 +308,15 @@
                                 currentAtomicTagDepth = 0;
                                 mode = 'char';
                             }
+                        } else if (currentAtomicTagDepth === 0 &&
+                                (isVoidTagName(currentAtomicTag) || /\/>$/.test(currentWord))){
+                            // At depth 0 this '>' can only end the atomic tag's own opening
+                            // tag. When the element is void or self-closing it has no
+                            // content: end the token so trailing content tokenizes normally.
+                            words.push(createToken(currentWord));
+                            currentWord = '';
+                            currentAtomicTag = '';
+                            mode = 'char';
                         } else if (isOpeningTagOf(currentWord, currentAtomicTag)){
                             currentAtomicTagDepth++;
                         }
@@ -980,17 +1018,29 @@
 
     /**
      * Splits an atomic token string into its opening tag, inner HTML and closing tag.
+     * A token consisting of a single tag (a void or self-closing element) has an empty
+     * inner HTML and no closing tag.
      *
      * @param {string} tokenString The atomic token string, e.g. '<div a="b">content</div>'.
      *
      * @return {Object|null} An object with openingTag, innerHtml and closingTag properties,
-     *    or null if the token has no separable inner content (e.g. self-closing tags).
+     *    or null if the token cannot be split (e.g. an unterminated tag).
      */
     function splitAtomicTokenString(tokenString){
         var openingTagEnd = tokenString.indexOf('>');
+        if (openingTagEnd === -1) {
+            return null;
+        }
+        if (openingTagEnd === tokenString.length - 1) {
+            // The token is a single tag (void or self-closing): the element has no content.
+            return {
+                openingTag: tokenString,
+                innerHtml: '',
+                closingTag: ''
+            };
+        }
         var closingTagStart = tokenString.lastIndexOf('<');
-        if (openingTagEnd === -1 || closingTagStart <= openingTagEnd ||
-                tokenString[closingTagStart + 1] !== '/') {
+        if (closingTagStart <= openingTagEnd || tokenString[closingTagStart + 1] !== '/') {
             return null;
         }
         return {

@@ -179,6 +179,48 @@ describe('Recursive inner diff (data-htmldiff-inner-diff)', function(){
                 '<ins data-operation-index="1">new</ins> text</div>');
         });
 
+        it('diffs text following a self-closing opted-in element normally', function(){
+            var res = cut(
+                '<div data-htmldiff-id="123" data-htmldiff-inner-diff="true"/>x old',
+                '<div data-htmldiff-id="123" data-htmldiff-inner-diff="true"/>x new');
+            expect(res).to.equal(
+                '<div data-htmldiff-id="123" data-htmldiff-inner-diff="true"/>x ' +
+                '<del data-operation-index="1">old</del>' +
+                '<ins data-operation-index="1">new</ins>');
+        });
+
+        it('marks the content as inserted when the before element was self-closing', function(){
+            // A self-closing element has empty inner content, so the new content is a
+            // pure insertion.
+            var res = cut(
+                '<div data-htmldiff-id="123" data-htmldiff-inner-diff="true"/>',
+                '<div data-htmldiff-id="123" data-htmldiff-inner-diff="true">new</div>');
+            expect(res).to.equal(
+                '<div data-htmldiff-id="123" data-htmldiff-inner-diff="true">' +
+                '<ins data-operation-index="0">new</ins></div>');
+        });
+
+        it('marks the content as deleted when the after element became self-closing', function(){
+            // The after element has no content anymore, so the deleted content is
+            // rendered right after the self-closing tag.
+            var res = cut(
+                '<div data-htmldiff-id="123" data-htmldiff-inner-diff="true">old</div>',
+                '<div data-htmldiff-id="123" data-htmldiff-inner-diff="true"/>');
+            expect(res).to.equal(
+                '<div data-htmldiff-id="123" data-htmldiff-inner-diff="true"/>' +
+                '<del data-operation-index="0">old</del>');
+        });
+
+        it('falls back to the after version when a token cannot be split', function(){
+            // An unterminated atomic tag swallows the rest of the input and has no closing
+            // tag to split on; the inner diff falls back instead of producing broken markup.
+            var after = '<div data-htmldiff-id="123" data-htmldiff-inner-diff="true">new';
+            var res = cut(
+                '<div data-htmldiff-id="123" data-htmldiff-inner-diff="true">old',
+                after);
+            expect(res).to.equal(after);
+        });
+
         it('renders pure insertions when the before content is empty', function(){
             var res = cut(tocEntry('#1', ''), tocEntry('#1', 'New name'));
             expect(res).to.equal(
