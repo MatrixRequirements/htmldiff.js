@@ -18,6 +18,31 @@ Quote from the original source of this fork:
 - TypeScript support.
 - Better documentation.
 
+**@matrixreq/htmldiff** is the Matrix Requirements fork of
+[node-htmldiff](https://github.com/idesis-gmbh/htmldiff.js) and adds the following on top
+of it:
+
+- Identity matching: elements with a `data-htmldiff-id` attribute are treated as atomic and
+  compared by the attribute value instead of by their content.
+- An opt-in recursive inner diff for identity-matched elements via the
+  `data-htmldiff-inner-diff` and `data-htmldiff-inner-diff-atomic-tags` attributes. See
+  *Identity matching and recursive inner diff* below for both features.
+- Atomic tags may contain nested same-named children: the atomic token ends only when the
+  tag's nesting depth returns to zero, and a stray `>` inside e.g. script content is not
+  treated as a tag boundary.
+- Tokenizer robustness: atomic tag names only match complete names (`<abbr>` is not
+  mistaken for the atomic tag `a`), and self-closing (`<div/>`) or void (`<img>`, `<br>`,
+  ...) atomic elements do not swallow the content following them.
+- Adjacent atomic tags are wrapped in their own `<ins>`/`<del>` tags instead of being
+  combined into one.
+- Inserted tags are marked with a `data-inserted="true"` attribute.
+- Whitespace handling: repeated whitespace (except newlines) as well as `&nbsp;`/`&#160;`
+  compare as equal to regular spaces.
+- Deletions of a closing/opening tag pair (e.g. the `</p><p>` removed when two paragraphs
+  are merged) render as a proper `<del>` instead of unbalanced tags.
+- Fixed the `atomicTags` parameter of the diff function: the custom tag list was previously
+  ignored due to a broken regular expression.
+
 See also *Credits* below.
 
 ## Description
