@@ -18,6 +18,34 @@ Quote from the original source of this fork:
 - TypeScript support.
 - Better documentation.
 
+**@matrixreq/htmldiff** is the Matrix Requirements fork of
+[node-htmldiff](https://github.com/idesis-gmbh/htmldiff.js) and adds the following on top
+of it:
+
+- Identity matching: elements with a `data-htmldiff-id` attribute are treated as atomic and
+  compared by the attribute value instead of by their content.
+- An opt-in recursive inner diff for identity-matched elements via the
+  `data-htmldiff-inner-diff` and `data-htmldiff-inner-diff-atomic-tags` attributes. See
+  *Identity matching and recursive inner diff* below for both features.
+- Atomic tags may contain nested same-named children: the atomic token ends only when the
+  tag's nesting depth returns to zero, and a stray `>` inside e.g. script content is not
+  treated as a tag boundary.
+- Tokenizer robustness: atomic tag names only match complete names (`<abbr>` is not
+  mistaken for the atomic tag `a`), and self-closing (`<div/>`) or void (`<img>`, `<br>`,
+  ...) atomic elements do not swallow the content following them.
+- Quote-aware tag parsing: `>` and `/>` inside quoted attribute values (e.g.
+  `title="a > b"`) do not end a tag prematurely, neither when tokenizing nor when
+  splitting an element for the recursive inner diff.
+- Adjacent atomic tags are wrapped in their own `<ins>`/`<del>` tags instead of being
+  combined into one.
+- Inserted tags are marked with a `data-inserted="true"` attribute.
+- Whitespace handling: repeated whitespace (except newlines) as well as `&nbsp;`/`&#160;`
+  compare as equal to regular spaces.
+- Deletions of a closing/opening tag pair (e.g. the `</p><p>` removed when two paragraphs
+  are merged) render as a proper `<del>` instead of unbalanced tags.
+- Fixed the `atomicTags` parameter of the diff function: the custom tag list was previously
+  ignored due to a broken regular expression.
+
 See also *Credits* below.
 
 ## Description
@@ -67,6 +95,55 @@ of these three parameters it will be ignored:
   list will be used:
   `iframe,object,math,svg,script,video,head,style`.
 
+
+### Identity matching and recursive inner diff
+
+Elements can be matched across the two documents by identity instead of content by giving
+them a `data-htmldiff-id` attribute. Such an element is treated as atomic (its children are
+never diffed) and compared solely by the attribute value: two elements with the same id are
+considered equal even if their content differs, in which case the after version is rendered
+as is.
+
+To make content changes of such identity-matched elements visible, add the
+`data-htmldiff-inner-diff="true"` attribute (alongside `data-htmldiff-id`). A bare
+attribute or any value other than `false` enables the behavior;
+`data-htmldiff-inner-diff="false"` disables it:
+
+```html
+<div class="toc-entry" data-htmldiff-id="sec-1" data-htmldiff-inner-diff="true">
+  <a href="#123">1. Section name</a>
+</div>
+```
+
+When two matched atomic tokens have the same key but different content and the element has
+opted in, the element is rendered once (with the after version's opening and closing tags)
+and its inner HTML is diffed recursively, so e.g. a renamed entry shows up as
+`... <del>Old name</del><ins>New name</ins> ...` inline. Inside the recursive diff the
+default atomic tag list without `a` is used
+(`iframe,object,math,svg,script,video,head,style`): link text is diffed word by word and
+href-only changes do not produce any diff markup, while embedded content like svg stays
+atomic. To use a different atomic tags list inside the recursive diff, set the
+`data-htmldiff-inner-diff-atomic-tags` attribute on the opted-in element:
+
+```html
+<div data-htmldiff-id="sec-1" data-htmldiff-inner-diff="true"
+     data-htmldiff-inner-diff-atomic-tags="svg,iframe,a">
+  ...
+</div>
+```
+
+The value replaces the default list and has the same format as the `atomicTags` API
+parameter; an empty value means no tag name is atomic. The attribute is read from the after
+version of the element and is only consulted on elements that opted in via
+`data-htmldiff-inner-diff`.
+
+Opted-in elements nested inside other opted-in elements are diffed recursively as well;
+each nesting level requires its own `data-htmldiff-inner-diff` attribute.
+
+Limitations:
+
+- The recursion depth is capped at 10 levels as a backstop against deep
+  nesting. Opted-in elements beyond the cap are rendered as their after version.
 
 ### Example
 

@@ -256,4 +256,63 @@ describe('Diff', function(){
       });
     }); // describe('Adjacent atomic tag combining')
 
+    describe('Atomic tag list override (atomicTags parameter)', function(){
+      // Regression tests for the parameter regexp being built with a literal backspace
+      // ('\b' instead of '\\b'), which made every override match nothing.
+      it('treats a listed tag as atomic', function(){
+        var res = cut('<iframe src="a.html"></iframe>', '<iframe src="b.html"></iframe>',
+          null, null, 'iframe');
+        expect(res).to.equal(
+          '<del data-operation-index="0"><iframe src="a.html"></iframe></del>' +
+          '<ins data-operation-index="0"><iframe src="b.html"></iframe></ins>');
+      });
+
+      it('replaces the default list, so an unlisted default tag loses atomicity', function(){
+        var res = cut('<iframe src="a.html">x</iframe>', '<iframe src="a.html">y</iframe>',
+          null, null, 'p');
+        expect(res).to.equal(
+          '<iframe src="a.html">' +
+          '<del data-operation-index="1">x</del>' +
+          '<ins data-operation-index="1">y</ins></iframe>');
+      });
+
+      it('does not match tags that merely start with a listed name', function(){
+        // 'if' must not make <iframe> atomic: tag names are matched completely.
+        var res = cut('<iframe src="a.html">x</iframe>', '<iframe src="a.html">y</iframe>',
+          null, null, 'if');
+        expect(res).to.equal(
+          '<iframe src="a.html">' +
+          '<del data-operation-index="1">x</del>' +
+          '<ins data-operation-index="1">y</ins></iframe>');
+      });
+    }); // describe('Atomic tag list override (atomicTags parameter)')
+
+    describe('Tags sharing a prefix with atomic tag names', function(){
+      it('should diff <abbr> content although a is an atomic tag', function(){
+        expect(cut('<abbr>old</abbr> t', '<abbr>new</abbr> t')).to.equal(
+          '<abbr><del data-operation-index="1">old</del>' +
+          '<ins data-operation-index="1">new</ins></abbr> t');
+      });
+    }); // describe('Tags sharing a prefix with atomic tag names')
+
+    describe('Quoted attribute values containing ">"', function(){
+      it('should diff the content of a tag with ">" in an attribute value', function(){
+        expect(cut('<p title="a>b">old</p>', '<p title="a>b">new</p>')).to.equal(
+          '<p title="a>b">' +
+          '<del data-operation-index="1">old</del>' +
+          '<ins data-operation-index="1">new</ins></p>');
+      });
+    }); // describe('Quoted attribute values containing ">"')
+
+    describe('Void atomic elements', function(){
+      it('should diff text following a void data-htmldiff-id element', function(){
+        var res = cut('<img data-htmldiff-id="1" src="a.jpg"> old',
+          '<img data-htmldiff-id="1" src="a.jpg"> new');
+        expect(res).to.equal(
+          '<img data-htmldiff-id="1" src="a.jpg"> ' +
+          '<del data-operation-index="1">old</del>' +
+          '<ins data-operation-index="1">new</ins>');
+      });
+    }); // describe('Void atomic elements')
+
   }); // describe('Diff')

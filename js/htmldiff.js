@@ -68,10 +68,62 @@
      * Regular expression to check atomic tags.
      * @see function diff.
      */
-    var atomicTagsRegExp;
     // Added head and style (for style tags inside the body)
-    var defaultAtomicTagsRegExp = new RegExp('^<(iframe|object|math|svg|script|video|head|style|a)\\b');
+    // The tag name must be followed by a delimiter (not a \b word boundary): the tokenizer
+    // matches against partially read tags, and a word boundary would match at the end of an
+    // incomplete name, e.g. detecting '<abbr>' as the atomic tag 'a' while reading '<a'.
+    var defaultAtomicTagsRegExp = new RegExp('^<(iframe|object|math|svg|script|video|head|style|a)[\\s/>]');
+    var atomicTagsRegExp = defaultAtomicTagsRegExp;
     const dataHtmlDiffIdRegExp = /^<([a-z\-]+).+data-htmldiff-id=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))*.)["']?/;
+
+    /**
+     * Opt-in marker for the recursive inner diff. When two matched atomic tokens (typically
+     * matched by data-htmldiff-id) have equal keys but different content, an element carrying
+     * this attribute gets its inner HTML diffed recursively instead of being rendered as is.
+     * The attribute must appear in the element's opening tag. Captures the attribute value;
+     * a bare attribute or any value other than "false" enables the opt-in.
+     * @see OPS.equal and renderInnerDiff.
+     */
+    const dataHtmlDiffInnerDiffRegExp =
+        /^<[^>]*\sdata-htmldiff-inner-diff(?:\s*=\s*["']?([^"'\s/>]*)|(?=[\s/>]))/;
+
+    /**
+     * Per-element override for the atomic tags used inside a recursive inner diff. The value
+     * is a comma separated tag name list, like the atomicTags parameter of the diff function;
+     * an empty value means no tag name is atomic. Without the attribute the default list
+     * without 'a' is used, so anchors have their text content diffed word by word while
+     * embedded content like svg stays atomic. The attribute is only consulted on elements
+     * that opted in via data-htmldiff-inner-diff.
+     */
+    const dataHtmlDiffInnerDiffAtomicTagsRegExp =
+        /^<[^>]*\sdata-htmldiff-inner-diff-atomic-tags\s*=\s*["']([^"']*)["']/;
+
+    // Atomic tags used inside a recursive inner diff unless the element overrides them via
+    // data-htmldiff-inner-diff-atomic-tags: the default list without 'a'.
+    var defaultInnerDiffAtomicTagsRegExp =
+        new RegExp('^<(iframe|object|math|svg|script|video|head|style)[\\s/>]');
+
+    // Matches no tag at all: used when data-htmldiff-inner-diff-atomic-tags is empty.
+    const noAtomicTagsRegExp = /^<(?!)/;
+
+    // The number of currently active recursive inner diffs. Recursion is governed per
+    // element (each nesting level requires its own data-htmldiff-inner-diff attribute), so
+    // the depth is naturally bounded by the nesting of opted-in elements; the cap is only a
+    // backstop against pathologically deep documents.
+    var innerDiffDepth = 0;
+    const maxInnerDiffDepth = 10;
+
+    /**
+     * Builds the atomic tags regular expression from a comma separated tag name list.
+     *
+     * @param {string} atomicTags Comma separated list of tag names, e.g. 'head,script,style'.
+     *
+     * @return {RegExp} The regular expression matching the start of those tags.
+     */
+    function buildAtomicTagsRegExp(atomicTags){
+        // Require a delimiter after the name (see defaultAtomicTagsRegExp on why not \b).
+        return new RegExp('^<(' + atomicTags.replace(/\s*/g, '').replace(/,/g, '|') + ')[\\s/>]');
+    }
     
     /**
      * Checks if the current word is the beginning of an atomic tag. An atomic tag is one whose
@@ -124,6 +176,20 @@
      */
     function isVoidTag(token){
         return /^\s*<[^>]+\/>\s*$/.test(token);
+    }
+
+    /**
+     * Checks if a tag name is an HTML void element. Void elements cannot have content and can skip a
+     * closing tag, so an atomic element with a void tag name ends with its opening tag -
+     * with or without the XML style '/>'.
+     *
+     * @param {string} tag The tag name to check.
+     *
+     * @return {boolean} True if the tag name is a void element.
+     */
+    function isVoidTagName(tag){
+        return /^(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/
+            .test(tag);
     }
 
     /**
@@ -189,15 +255,71 @@
         var currentWord = '';
         var currentAtomicTag = '';
         var currentAtomicTagDepth = 0;
+        // The quote character of the attribute value currently being read, or null. Quoted
+        // attribute values may contain any character including '>', so no tag boundary or
+        // atomic tag detection applies inside them.
+        var currentQuote = null;
+        // True while reading the atomic tag's own opening tag. Quote tracking in atomic
+        // mode is limited to that region: quotes in the element's content (text
+        // apostrophes, comments, nested tags) must not affect how the token ends.
+        var inAtomicOpeningTag = false;
         var words = [];
+
+        /**
+         * Consumes a character belonging to a quoted attribute value, updating the quote
+         * state. Quoted values may contain any character including '>', so as long as a
+         * quote is open no tag boundary or atomic tag detection applies.
+         *
+         * @param {string} char The current character.
+         * @param {boolean} canOpenQuote Whether a quote may start at this position.
+         *
+         * @return {boolean} True if the character was consumed and no other handling
+         *    applies to it.
+         */
+        function consumeAttributeQuote(char, canOpenQuote){
+            if (currentQuote){
+                if (char === currentQuote){
+                    currentQuote = null;
+                }
+                return true;
+            }
+            if (canOpenQuote && (char === '"' || char === "'")){
+                currentQuote = char;
+                return true;
+            }
+            return false;
+        }
+
         for (var i = 0; i < html.length; i++){
             var char = html[i];
             switch (mode){
                 case 'tag':
-                    var atomicTag = isStartOfAtomicTag(currentWord);
-                    if (atomicTag){
+                    // Quote handling must come before the atomic tag detection:
+                    // dataHtmlDiffIdRegExp can match right at the opening quote of the
+                    // attribute value, which would enter atomic mode with the quote
+                    // tracking out of sync.
+                    if (consumeAttributeQuote(char, true)){
+                        currentWord += char;
+                        break;
+                    }
+                    // The atomic tag regexps require a delimiter after the tag name, so the
+                    // current character must be included in the check: without it a tag
+                    // ending right at the name (e.g. '<script' + '>') would never match.
+                    var atomicTag = isStartOfAtomicTag(currentWord + char);
+                    if (atomicTag && isEndOfTag(char) &&
+                            (isVoidTagName(atomicTag) || /\/$/.test(currentWord))){
+                        // The atomic tag itself is void or self-closing: it has no content
+                        // that could be swallowed, emit it as a complete token.
+                        currentWord += '>';
+                        words.push(createToken(currentWord));
+                        currentWord = '';
+                        mode = 'char';
+                    } else if (atomicTag){
                         mode = 'atomic_tag';
                         currentAtomicTag = atomicTag;
+                        // we are still inside the atomic tag's own opening tag unless this
+                        // character just ended it
+                        inAtomicOpeningTag = !isEndOfTag(char);
                         // skip standalone tags like <script> and <style>
                         currentAtomicTagDepth = isEndOfTag(char) ? 1 : 0;
                         currentWord += char;
@@ -219,9 +341,17 @@
                     break;
                 case 'atomic_tag':
                     currentWord += char;
-                    // track the same name nested tags depth; 
+                    // Quotes may only open inside the atomic tag's own opening tag, where
+                    // attribute values may contain '>' or '/>' and must not affect the
+                    // depth tracking below. Quote characters in the element's content
+                    // (text apostrophes, comments) are not attribute quotes.
+                    if (consumeAttributeQuote(char, inAtomicOpeningTag)){
+                        break;
+                    }
+                    // track the same name nested tags depth;
                     // end the atomic token only when it returns to 0.
                     if (isEndOfTag(char)){
+                        inAtomicOpeningTag = false;
                         if (isClosingTagOf(currentWord, currentAtomicTag)){
                             currentAtomicTagDepth--;
                             if (currentAtomicTagDepth <= 0){
@@ -231,6 +361,15 @@
                                 currentAtomicTagDepth = 0;
                                 mode = 'char';
                             }
+                        } else if (currentAtomicTagDepth === 0 &&
+                                (isVoidTagName(currentAtomicTag) || /\/>$/.test(currentWord))){
+                            // At depth 0 this '>' can only end the atomic tag's own opening
+                            // tag. When the element is void or self-closing it has no
+                            // content: end the token so trailing content tokenizes normally.
+                            words.push(createToken(currentWord));
+                            currentWord = '';
+                            currentAtomicTag = '';
+                            mode = 'char';
                         } else if (isOpeningTagOf(currentWord, currentAtomicTag)){
                             currentAtomicTagDepth++;
                         }
@@ -314,8 +453,10 @@
         }
         
         // If the token is an a element, grab it's data attribute to include in the key.
+        // Only when <a> is atomic: if it has been excluded from the atomic tags (as done in
+        // recursive inner diffs), the token is just the opening tag.
         var a = /^<a.*href=['"]([^"']*)['"]/.exec(token);
-        if (a) {
+        if (a && atomicTagsRegExp.test('<a ')) {
             return '<a href="' + a[1] + '"></a>';
         }
 
@@ -910,6 +1051,137 @@
     }
 
     /**
+     * Checks whether a token is an atomic tag that opted into the recursive inner diff via
+     * the data-htmldiff-inner-diff attribute. A bare attribute or any value other than
+     * "false" counts as opted in. Opted-in elements nested inside other opted-in elements
+     * are diffed recursively as well, up to the depth cap; beyond it, opted-in tokens are
+     * rendered verbatim like any other atomic token.
+     *
+     * @param {string} tokenString The token string to check.
+     *
+     * @return {boolean} True if the token should get a recursive inner diff.
+     */
+    function isInnerDiffToken(tokenString){
+        if (innerDiffDepth >= maxInnerDiffDepth || !isStartOfAtomicTag(tokenString)){
+            return false;
+        }
+        var attr = dataHtmlDiffInnerDiffRegExp.exec(tokenString);
+        return !!attr && attr[1] !== 'false';
+    }
+
+    /**
+     * Finds the index of the '>' that ends the opening tag at the start of the given token
+     * string, skipping any '>' inside quoted attribute values (e.g. title="a > b").
+     *
+     * @param {string} tokenString The token string starting with an opening tag.
+     *
+     * @return {number} The index of the closing '>' of the opening tag, or -1 if there is
+     *    none (e.g. an unterminated tag or an unbalanced attribute quote).
+     */
+    function findOpeningTagEnd(tokenString){
+        var quote = null;
+        for (var i = 0; i < tokenString.length; i++){
+            var char = tokenString[i];
+            // quote is closed
+            if (char === quote){
+                quote = null;
+                continue;
+            }
+            // inside quote
+            if (quote){
+                continue;
+            }
+            // quote start
+            if (char === '"' || char === "'"){
+                quote = char;
+                continue;
+            }
+            // not inside quote, check for tag end
+            if (char === '>'){
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Splits an atomic token string into its opening tag, inner HTML and closing tag.
+     * A token consisting of a single tag (a void or self-closing element) has an empty
+     * inner HTML and no closing tag.
+     *
+     * @param {string} tokenString The atomic token string, e.g. '<div a="b">content</div>'.
+     *
+     * @return {Object|null} An object with openingTag, innerHtml and closingTag properties,
+     *    or null if the token cannot be split (e.g. an unterminated tag).
+     */
+    function splitAtomicTokenString(tokenString){
+        var openingTagEnd = findOpeningTagEnd(tokenString);
+        if (openingTagEnd === -1) {
+            return null;
+        }
+        if (openingTagEnd === tokenString.length - 1) {
+            // The token is a single tag (void or self-closing): the element has no content.
+            return {
+                openingTag: tokenString,
+                innerHtml: '',
+                closingTag: ''
+            };
+        }
+        var closingTagStart = tokenString.lastIndexOf('<');
+        if (closingTagStart <= openingTagEnd || tokenString[closingTagStart + 1] !== '/') {
+            return null;
+        }
+        return {
+            openingTag: tokenString.slice(0, openingTagEnd + 1),
+            innerHtml: tokenString.slice(openingTagEnd + 1, closingTagStart),
+            closingTag: tokenString.slice(closingTagStart)
+        };
+    }
+
+    /**
+     * Renders the recursive inner diff of two matched atomic tokens with equal keys but
+     * different content. The after version's opening and closing tags are emitted with the
+     * diff of the two inner HTML fragments in between. Inside the recursion the default
+     * atomic tags without 'a' are used, so link text is diffed word by word and href-only
+     * changes do not produce any markup. The after version's
+     * data-htmldiff-inner-diff-atomic-tags attribute overrides that list. Nested opted-in
+     * elements are diffed recursively as well, up to a hardcoded depth cap.
+     *
+     * @param {string} beforeString The before version of the atomic token.
+     * @param {string} afterString The after version of the atomic token.
+     * @param {string} dataPrefix (Optional) The prefix to use in data attributes.
+     * @param {string} className (Optional) The class name to include in the wrapper tag.
+     *
+     * @return {string} The rendered element with inner differences wrapped in ins/del tags.
+     */
+    function renderInnerDiff(beforeString, afterString, dataPrefix, className){
+        var before = splitAtomicTokenString(beforeString);
+        var after = splitAtomicTokenString(afterString);
+        if (!before || !after){
+            return afterString;
+        }
+        var atomicTagsOverride = dataHtmlDiffInnerDiffAtomicTagsRegExp.exec(afterString);
+        var outerAtomicTagsRegExp = atomicTagsRegExp;
+        innerDiffDepth++;
+        // we need to clean up the innerDiffDepth update and atomicTagsRegExp restoration in case of an error, hence try/finally
+        try {
+            atomicTagsRegExp = defaultInnerDiffAtomicTagsRegExp;
+
+            if (atomicTagsOverride) {
+                atomicTagsRegExp = atomicTagsOverride[1]
+                    ? buildAtomicTagsRegExp(atomicTagsOverride[1])
+                    : noAtomicTagsRegExp;
+            }
+
+            var innerDiff = diffCore(before.innerHtml, after.innerHtml, className, dataPrefix);
+        } finally {
+            innerDiffDepth--;
+            atomicTagsRegExp = outerAtomicTagsRegExp;
+        }
+        return after.openingTag + innerDiff + after.closingTag;
+    }
+
+    /**
      * OPS.equal/insert/delete/replace are functions that render an operation into
      * HTML content.
      *
@@ -931,10 +1203,23 @@
      */
     var OPS = {
         'equal': function(op, beforeTokens, afterTokens, opIndex, dataPrefix, className){
-            var tokens = afterTokens.slice(op.startInAfter, op.endInAfter + 1);
-            return tokens.reduce(function(prev, curr){
-                return prev + curr.string;
-            }, '');
+            // Tokens in an equal operation pair up one to one between before and after. Equal
+            // keys do not guarantee equal strings (e.g. atomic tokens matched by
+            // data-htmldiff-id): elements that opted in via data-htmldiff-inner-diff get a
+            // recursive diff of their content, everything else renders the after version.
+            var result = '';
+            for (var i = 0; op.startInAfter + i <= op.endInAfter; i++){
+                var afterToken = afterTokens[op.startInAfter + i];
+                var beforeToken = beforeTokens[op.startInBefore + i];
+                if (beforeToken && beforeToken.string !== afterToken.string &&
+                        isInnerDiffToken(afterToken.string)){
+                    result += renderInnerDiff(
+                            beforeToken.string, afterToken.string, dataPrefix, className);
+                } else {
+                    result += afterToken.string;
+                }
+            }
+            return result;
         },
         'insert': function(op, beforeTokens, afterTokens, opIndex, dataPrefix, className){
             var tokens = afterTokens.slice(op.startInAfter, op.endInAfter + 1);
@@ -1012,12 +1297,23 @@
      * @return {string} The combined HTML content with differences wrapped in <ins> and <del> tags.
      */
     function diff(before, after, className, dataPrefix, atomicTags){
-        if (before === after) return before;
-
         // Enable user provided atomic tag list.
-        atomicTags ? 
-            (atomicTagsRegExp = new RegExp('^<(' + atomicTags.replace(/\s*/g, '').replace(/,/g, '|') + ')\b'))
+        atomicTags ?
+            (atomicTagsRegExp = buildAtomicTagsRegExp(atomicTags))
             : (atomicTagsRegExp = defaultAtomicTagsRegExp);
+
+        return diffCore(before, after, className, dataPrefix);
+    }
+
+    /**
+     * Runs the diff pipeline with whatever atomic tags regular expression is currently active.
+     * Used by the diff function after resolving the atomicTags parameter and by
+     * renderInnerDiff, which sets the regular expression itself.
+     *
+     * @see function diff for the parameter and return value descriptions.
+     */
+    function diffCore(before, after, className, dataPrefix){
+        if (before === after) return before;
 
         before = htmlToTokens(before);
         after = htmlToTokens(after);
