@@ -256,4 +256,25 @@ describe('Diff', function(){
       });
     }); // describe('Adjacent atomic tag combining')
 
+    describe('Atomic tag list override (atomicTags parameter)', function(){
+      // Regression tests for the parameter regexp being built with a literal backspace
+      // ('\b' instead of '\\b'), which made every override match nothing.
+      it('treats a listed tag as atomic', function(){
+        var res = cut('<iframe src="a.html"></iframe>', '<iframe src="b.html"></iframe>',
+          null, null, 'iframe');
+        expect(res).to.equal(
+          '<del data-operation-index="0"><iframe src="a.html"></iframe></del>' +
+          '<ins data-operation-index="0"><iframe src="b.html"></iframe></ins>');
+      });
+
+      it('replaces the default list, so an unlisted default tag loses atomicity', function(){
+        var res = cut('<iframe src="a.html">x</iframe>', '<iframe src="a.html">y</iframe>',
+          null, null, 'p');
+        expect(res).to.equal(
+          '<iframe src="a.html">' +
+          '<del data-operation-index="1">x</del>' +
+          '<ins data-operation-index="1">y</ins></iframe>');
+      });
+    }); // describe('Atomic tag list override (atomicTags parameter)')
+
   }); // describe('Diff')

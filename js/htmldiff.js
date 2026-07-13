@@ -68,10 +68,58 @@
      * Regular expression to check atomic tags.
      * @see function diff.
      */
-    var atomicTagsRegExp;
     // Added head and style (for style tags inside the body)
     var defaultAtomicTagsRegExp = new RegExp('^<(iframe|object|math|svg|script|video|head|style|a)\\b');
+    var atomicTagsRegExp = defaultAtomicTagsRegExp;
     const dataHtmlDiffIdRegExp = /^<([a-z\-]+).+data-htmldiff-id=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))*.)["']?/;
+
+    /**
+     * Opt-in marker for the recursive inner diff. When two matched atomic tokens (typically
+     * matched by data-htmldiff-id) have equal keys but different content, an element carrying
+     * this attribute gets its inner HTML diffed recursively instead of being rendered as is.
+     * The attribute must appear in the element's opening tag. Captures the attribute value;
+     * a bare attribute or any value other than "false" enables the opt-in.
+     * @see OPS.equal and renderInnerDiff.
+     */
+    const dataHtmlDiffInnerDiffRegExp =
+        /^<[^>]*\sdata-htmldiff-inner-diff(?:\s*=\s*["']?([^"'\s/>]*)|(?=[\s/>]))/;
+
+    /**
+     * Per-element override for the atomic tags used inside a recursive inner diff. The value
+     * is a comma separated tag name list, like the atomicTags parameter of the diff function;
+     * an empty value means no tag name is atomic. Without the attribute the default list
+     * without 'a' is used, so anchors have their text content diffed word by word while
+     * embedded content like svg stays atomic. The attribute is only consulted on elements
+     * that opted in via data-htmldiff-inner-diff.
+     */
+    const dataHtmlDiffInnerDiffAtomicTagsRegExp =
+        /^<[^>]*\sdata-htmldiff-inner-diff-atomic-tags\s*=\s*["']([^"']*)["']/;
+
+    // Atomic tags used inside a recursive inner diff unless the element overrides them via
+    // data-htmldiff-inner-diff-atomic-tags: the default list without 'a'.
+    var defaultInnerDiffAtomicTagsRegExp =
+        new RegExp('^<(iframe|object|math|svg|script|video|head|style)\\b');
+
+    // Matches no tag at all: used when data-htmldiff-inner-diff-atomic-tags is empty.
+    const noAtomicTagsRegExp = /^<(?!)/;
+
+    // The number of currently active recursive inner diffs. Recursion is governed per
+    // element (each nesting level requires its own data-htmldiff-inner-diff attribute), so
+    // the depth is naturally bounded by the nesting of opted-in elements; the cap is only a
+    // backstop against pathologically deep documents.
+    var innerDiffDepth = 0;
+    const maxInnerDiffDepth = 10;
+
+    /**
+     * Builds the atomic tags regular expression from a comma separated tag name list.
+     *
+     * @param {string} atomicTags Comma separated list of tag names, e.g. 'head,script,style'.
+     *
+     * @return {RegExp} The regular expression matching the start of those tags.
+     */
+    function buildAtomicTagsRegExp(atomicTags){
+        return new RegExp('^<(' + atomicTags.replace(/\s*/g, '').replace(/,/g, '|') + ')\\b');
+    }
     
     /**
      * Checks if the current word is the beginning of an atomic tag. An atomic tag is one whose
@@ -314,8 +362,10 @@
         }
         
         // If the token is an a element, grab it's data attribute to include in the key.
+        // Only when <a> is atomic: if it has been excluded from the atomic tags (as done in
+        // recursive inner diffs), the token is just the opening tag.
         var a = /^<a.*href=['"]([^"']*)['"]/.exec(token);
-        if (a) {
+        if (a && atomicTagsRegExp.test('<a ')) {
             return '<a href="' + a[1] + '"></a>';
         }
 
@@ -910,6 +960,90 @@
     }
 
     /**
+     * Checks whether a token is an atomic tag that opted into the recursive inner diff via
+     * the data-htmldiff-inner-diff attribute. A bare attribute or any value other than
+     * "false" counts as opted in. Opted-in elements nested inside other opted-in elements
+     * are diffed recursively as well, up to the depth cap; beyond it, opted-in tokens are
+     * rendered verbatim like any other atomic token.
+     *
+     * @param {string} tokenString The token string to check.
+     *
+     * @return {boolean} True if the token should get a recursive inner diff.
+     */
+    function isInnerDiffToken(tokenString){
+        if (innerDiffDepth >= maxInnerDiffDepth || !isStartOfAtomicTag(tokenString)){
+            return false;
+        }
+        var attr = dataHtmlDiffInnerDiffRegExp.exec(tokenString);
+        return !!attr && attr[1] !== 'false';
+    }
+
+    /**
+     * Splits an atomic token string into its opening tag, inner HTML and closing tag.
+     *
+     * @param {string} tokenString The atomic token string, e.g. '<div a="b">content</div>'.
+     *
+     * @return {Object|null} An object with openingTag, innerHtml and closingTag properties,
+     *    or null if the token has no separable inner content (e.g. self-closing tags).
+     */
+    function splitAtomicTokenString(tokenString){
+        var openingTagEnd = tokenString.indexOf('>');
+        var closingTagStart = tokenString.lastIndexOf('<');
+        if (openingTagEnd === -1 || closingTagStart <= openingTagEnd ||
+                tokenString[closingTagStart + 1] !== '/') {
+            return null;
+        }
+        return {
+            openingTag: tokenString.slice(0, openingTagEnd + 1),
+            innerHtml: tokenString.slice(openingTagEnd + 1, closingTagStart),
+            closingTag: tokenString.slice(closingTagStart)
+        };
+    }
+
+    /**
+     * Renders the recursive inner diff of two matched atomic tokens with equal keys but
+     * different content. The after version's opening and closing tags are emitted with the
+     * diff of the two inner HTML fragments in between. Inside the recursion the default
+     * atomic tags without 'a' are used, so link text is diffed word by word and href-only
+     * changes do not produce any markup. The after version's
+     * data-htmldiff-inner-diff-atomic-tags attribute overrides that list. Nested opted-in
+     * elements are diffed recursively as well, up to a hardcoded depth cap.
+     *
+     * @param {string} beforeString The before version of the atomic token.
+     * @param {string} afterString The after version of the atomic token.
+     * @param {string} dataPrefix (Optional) The prefix to use in data attributes.
+     * @param {string} className (Optional) The class name to include in the wrapper tag.
+     *
+     * @return {string} The rendered element with inner differences wrapped in ins/del tags.
+     */
+    function renderInnerDiff(beforeString, afterString, dataPrefix, className){
+        var before = splitAtomicTokenString(beforeString);
+        var after = splitAtomicTokenString(afterString);
+        if (!before || !after){
+            return afterString;
+        }
+        var atomicTagsOverride = dataHtmlDiffInnerDiffAtomicTagsRegExp.exec(afterString);
+        var outerAtomicTagsRegExp = atomicTagsRegExp;
+        innerDiffDepth++;
+        // we need to clean up the innerDiffDepth update and atomicTagsRegExp restoration in case of an error, hence try/finally
+        try {
+            atomicTagsRegExp = defaultInnerDiffAtomicTagsRegExp;
+
+            if (atomicTagsOverride) {
+                atomicTagsRegExp = atomicTagsOverride[1]
+                    ? buildAtomicTagsRegExp(atomicTagsOverride[1])
+                    : noAtomicTagsRegExp;
+            }
+
+            var innerDiff = diffCore(before.innerHtml, after.innerHtml, className, dataPrefix);
+        } finally {
+            innerDiffDepth--;
+            atomicTagsRegExp = outerAtomicTagsRegExp;
+        }
+        return after.openingTag + innerDiff + after.closingTag;
+    }
+
+    /**
      * OPS.equal/insert/delete/replace are functions that render an operation into
      * HTML content.
      *
@@ -931,10 +1065,23 @@
      */
     var OPS = {
         'equal': function(op, beforeTokens, afterTokens, opIndex, dataPrefix, className){
-            var tokens = afterTokens.slice(op.startInAfter, op.endInAfter + 1);
-            return tokens.reduce(function(prev, curr){
-                return prev + curr.string;
-            }, '');
+            // Tokens in an equal operation pair up one to one between before and after. Equal
+            // keys do not guarantee equal strings (e.g. atomic tokens matched by
+            // data-htmldiff-id): elements that opted in via data-htmldiff-inner-diff get a
+            // recursive diff of their content, everything else renders the after version.
+            var result = '';
+            for (var i = 0; op.startInAfter + i <= op.endInAfter; i++){
+                var afterToken = afterTokens[op.startInAfter + i];
+                var beforeToken = beforeTokens[op.startInBefore + i];
+                if (beforeToken && beforeToken.string !== afterToken.string &&
+                        isInnerDiffToken(afterToken.string)){
+                    result += renderInnerDiff(
+                            beforeToken.string, afterToken.string, dataPrefix, className);
+                } else {
+                    result += afterToken.string;
+                }
+            }
+            return result;
         },
         'insert': function(op, beforeTokens, afterTokens, opIndex, dataPrefix, className){
             var tokens = afterTokens.slice(op.startInAfter, op.endInAfter + 1);
@@ -1012,12 +1159,23 @@
      * @return {string} The combined HTML content with differences wrapped in <ins> and <del> tags.
      */
     function diff(before, after, className, dataPrefix, atomicTags){
-        if (before === after) return before;
-
         // Enable user provided atomic tag list.
-        atomicTags ? 
-            (atomicTagsRegExp = new RegExp('^<(' + atomicTags.replace(/\s*/g, '').replace(/,/g, '|') + ')\b'))
+        atomicTags ?
+            (atomicTagsRegExp = buildAtomicTagsRegExp(atomicTags))
             : (atomicTagsRegExp = defaultAtomicTagsRegExp);
+
+        return diffCore(before, after, className, dataPrefix);
+    }
+
+    /**
+     * Runs the diff pipeline with whatever atomic tags regular expression is currently active.
+     * Used by the diff function after resolving the atomicTags parameter and by
+     * renderInnerDiff, which sets the regular expression itself.
+     *
+     * @see function diff for the parameter and return value descriptions.
+     */
+    function diffCore(before, after, className, dataPrefix){
+        if (before === after) return before;
 
         before = htmlToTokens(before);
         after = htmlToTokens(after);
