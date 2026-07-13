@@ -255,11 +255,53 @@
         var currentWord = '';
         var currentAtomicTag = '';
         var currentAtomicTagDepth = 0;
+        // The quote character of the attribute value currently being read, or null. Quoted
+        // attribute values may contain any character including '>', so no tag boundary or
+        // atomic tag detection applies inside them.
+        var currentQuote = null;
+        // True while reading the atomic tag's own opening tag. Quote tracking in atomic
+        // mode is limited to that region: quotes in the element's content (text
+        // apostrophes, comments, nested tags) must not affect how the token ends.
+        var inAtomicOpeningTag = false;
         var words = [];
+
+        /**
+         * Consumes a character belonging to a quoted attribute value, updating the quote
+         * state. Quoted values may contain any character including '>', so as long as a
+         * quote is open no tag boundary or atomic tag detection applies.
+         *
+         * @param {string} char The current character.
+         * @param {boolean} canOpenQuote Whether a quote may start at this position.
+         *
+         * @return {boolean} True if the character was consumed and no other handling
+         *    applies to it.
+         */
+        function consumeAttributeQuote(char, canOpenQuote){
+            if (currentQuote){
+                if (char === currentQuote){
+                    currentQuote = null;
+                }
+                return true;
+            }
+            if (canOpenQuote && (char === '"' || char === "'")){
+                currentQuote = char;
+                return true;
+            }
+            return false;
+        }
+
         for (var i = 0; i < html.length; i++){
             var char = html[i];
             switch (mode){
                 case 'tag':
+                    // Quote handling must come before the atomic tag detection:
+                    // dataHtmlDiffIdRegExp can match right at the opening quote of the
+                    // attribute value, which would enter atomic mode with the quote
+                    // tracking out of sync.
+                    if (consumeAttributeQuote(char, true)){
+                        currentWord += char;
+                        break;
+                    }
                     // The atomic tag regexps require a delimiter after the tag name, so the
                     // current character must be included in the check: without it a tag
                     // ending right at the name (e.g. '<script' + '>') would never match.
@@ -275,6 +317,9 @@
                     } else if (atomicTag){
                         mode = 'atomic_tag';
                         currentAtomicTag = atomicTag;
+                        // we are still inside the atomic tag's own opening tag unless this
+                        // character just ended it
+                        inAtomicOpeningTag = !isEndOfTag(char);
                         // skip standalone tags like <script> and <style>
                         currentAtomicTagDepth = isEndOfTag(char) ? 1 : 0;
                         currentWord += char;
@@ -296,9 +341,17 @@
                     break;
                 case 'atomic_tag':
                     currentWord += char;
-                    // track the same name nested tags depth; 
+                    // Quotes may only open inside the atomic tag's own opening tag, where
+                    // attribute values may contain '>' or '/>' and must not affect the
+                    // depth tracking below. Quote characters in the element's content
+                    // (text apostrophes, comments) are not attribute quotes.
+                    if (consumeAttributeQuote(char, inAtomicOpeningTag)){
+                        break;
+                    }
+                    // track the same name nested tags depth;
                     // end the atomic token only when it returns to 0.
                     if (isEndOfTag(char)){
+                        inAtomicOpeningTag = false;
                         if (isClosingTagOf(currentWord, currentAtomicTag)){
                             currentAtomicTagDepth--;
                             if (currentAtomicTagDepth <= 0){
@@ -1017,6 +1070,41 @@
     }
 
     /**
+     * Finds the index of the '>' that ends the opening tag at the start of the given token
+     * string, skipping any '>' inside quoted attribute values (e.g. title="a > b").
+     *
+     * @param {string} tokenString The token string starting with an opening tag.
+     *
+     * @return {number} The index of the closing '>' of the opening tag, or -1 if there is
+     *    none (e.g. an unterminated tag or an unbalanced attribute quote).
+     */
+    function findOpeningTagEnd(tokenString){
+        var quote = null;
+        for (var i = 0; i < tokenString.length; i++){
+            var char = tokenString[i];
+            // quote is closed
+            if (char === quote){
+                quote = null;
+                continue;
+            }
+            // inside quote
+            if (quote){
+                continue;
+            }
+            // quote start
+            if (char === '"' || char === "'"){
+                quote = char;
+                continue;
+            }
+            // not inside quote, check for tag end
+            if (char === '>'){
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
      * Splits an atomic token string into its opening tag, inner HTML and closing tag.
      * A token consisting of a single tag (a void or self-closing element) has an empty
      * inner HTML and no closing tag.
@@ -1027,7 +1115,7 @@
      *    or null if the token cannot be split (e.g. an unterminated tag).
      */
     function splitAtomicTokenString(tokenString){
-        var openingTagEnd = tokenString.indexOf('>');
+        var openingTagEnd = findOpeningTagEnd(tokenString);
         if (openingTagEnd === -1) {
             return null;
         }

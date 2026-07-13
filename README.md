@@ -33,6 +33,9 @@ of it:
 - Tokenizer robustness: atomic tag names only match complete names (`<abbr>` is not
   mistaken for the atomic tag `a`), and self-closing (`<div/>`) or void (`<img>`, `<br>`,
   ...) atomic elements do not swallow the content following them.
+- Quote-aware tag parsing: `>` and `/>` inside quoted attribute values (e.g.
+  `title="a > b"`) do not end a tag prematurely, neither when tokenizing nor when
+  splitting an element for the recursive inner diff.
 - Adjacent atomic tags are wrapped in their own `<ins>`/`<del>` tags instead of being
   combined into one.
 - Inserted tags are marked with a `data-inserted="true"` attribute.

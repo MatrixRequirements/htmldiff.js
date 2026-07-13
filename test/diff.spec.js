@@ -295,6 +295,15 @@ describe('Diff', function(){
       });
     }); // describe('Tags sharing a prefix with atomic tag names')
 
+    describe('Quoted attribute values containing ">"', function(){
+      it('should diff the content of a tag with ">" in an attribute value', function(){
+        expect(cut('<p title="a>b">old</p>', '<p title="a>b">new</p>')).to.equal(
+          '<p title="a>b">' +
+          '<del data-operation-index="1">old</del>' +
+          '<ins data-operation-index="1">new</ins></p>');
+      });
+    }); // describe('Quoted attribute values containing ">"')
+
     describe('Void atomic elements', function(){
       it('should diff text following a void data-htmldiff-id element', function(){
         var res = cut('<img data-htmldiff-id="1" src="a.jpg"> old',

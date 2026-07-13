@@ -211,6 +211,28 @@ describe('Recursive inner diff (data-htmldiff-inner-diff)', function(){
                 '<del data-operation-index="0">old</del>');
         });
 
+        it('is not confused by ">" inside attribute values', function(){
+            var res = cut(
+                '<div data-htmldiff-id="123" data-htmldiff-inner-diff="true" title="a > b">' +
+                'old</div>',
+                '<div data-htmldiff-id="123" data-htmldiff-inner-diff="true" title="a > c">' +
+                'new</div>');
+            expect(res).to.equal(
+                '<div data-htmldiff-id="123" data-htmldiff-inner-diff="true" title="a > c">' +
+                '<del data-operation-index="0">old</del>' +
+                '<ins data-operation-index="0">new</ins></div>');
+        });
+
+        it('is not confused by ">" inside single-quoted attribute values', function(){
+            var res = cut(
+                "<div data-htmldiff-id='123' data-htmldiff-inner-diff title='a > b'>old</div>",
+                "<div data-htmldiff-id='123' data-htmldiff-inner-diff title='a > b'>new</div>");
+            expect(res).to.equal(
+                "<div data-htmldiff-id='123' data-htmldiff-inner-diff title='a > b'>" +
+                '<del data-operation-index="0">old</del>' +
+                '<ins data-operation-index="0">new</ins></div>');
+        });
+
         it('falls back to the after version when a token cannot be split', function(){
             // An unterminated atomic tag swallows the rest of the input and has no closing
             // tag to split on; the inner diff falls back instead of producing broken markup.

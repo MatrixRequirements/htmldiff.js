@@ -185,6 +185,44 @@ describe('htmlToTokens', function(){
             });
         });
 
+        describe('quoted attribute values containing tag delimiters', function(){
+            it('should not end a tag on ">" inside a double-quoted attribute value', function(){
+                expect(cut('<p class="a>b">text</p>')).eql(
+                        tokenize(['<p class="a>b">', 'text', '</p>']));
+            });
+
+            it('should not end a tag on ">" inside a single-quoted attribute value', function(){
+                expect(cut("<p class='a>b'>x</p>")).eql(
+                        tokenize(["<p class='a>b'>", 'x', '</p>']));
+            });
+
+            it('should not end a void atomic tag on ">" inside an attribute value', function(){
+                expect(cut('<img data-htmldiff-id="1" alt="a > b"> tail')).eql(
+                        tokenize(['<img data-htmldiff-id="1" alt="a > b">', ' ', 'tail']));
+            });
+
+            it('should not treat "/>" inside an attribute value as self-closing', function(){
+                var atomic = '<span data-htmldiff-id="1" data-x="y/>z">c</span>';
+                expect(cut(atomic)).eql(tokenize([atomic]));
+            });
+
+            it('should keep an atomic tag with ">" in an attribute as one token', function(){
+                expect(cut('<div data-htmldiff-id="1" title="a > b">x</div> tail')).eql(
+                        tokenize(['<div data-htmldiff-id="1" title="a > b">x</div>',
+                            ' ', 'tail']));
+            });
+
+            it('should not treat apostrophes in atomic text content as quotes', function(){
+                expect(cut("<div data-htmldiff-id='1'>it's ok</div> tail")).eql(
+                        tokenize(["<div data-htmldiff-id='1'>it's ok</div>", ' ', 'tail']));
+            });
+
+            it('should not treat apostrophes in comments inside atomic tags as quotes', function(){
+                expect(cut("<math><mi>x<!-- don't --></mi></math> tail")).eql(
+                        tokenize(["<math><mi>x<!-- don't --></mi></math>", ' ', 'tail']));
+            });
+        });
+
         describe('void atomic tags', function(){
             it('should end a void data-htmldiff-id tag written without a slash', function(){
                 expect(cut('<img data-htmldiff-id="1" src="a.jpg"> tail')).eql(
