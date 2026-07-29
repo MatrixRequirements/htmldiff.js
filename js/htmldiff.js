@@ -74,7 +74,15 @@
     // incomplete name, e.g. detecting '<abbr>' as the atomic tag 'a' while reading '<a'.
     var defaultAtomicTagsRegExp = new RegExp('^<(iframe|object|math|svg|script|video|head|style|a)[\\s/>]');
     var atomicTagsRegExp = defaultAtomicTagsRegExp;
-    const dataHtmlDiffIdRegExp = /^<([a-z\-]+).+data-htmldiff-id=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))*.)["']?/;
+    
+    /**
+     * Matches an element whose own opening tag carries data-htmldiff-id; captures tag name and
+     * attribute value. The skip before the attribute is quote aware, so it cannot run past '>'
+     * into a nested child. The leading \s prevents matching 'x-data-htmldiff-id'.
+     * @see isStartOfAtomicTag and createToken.
+     */
+    const dataHtmlDiffIdRegExp =
+        /^<([a-z\-]+)(?:[^>"']|"[^"]*"|'[^']*')*\sdata-htmldiff-id=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))*.)["']?/;
 
     /**
      * Opt-in marker for the recursive inner diff. When two matched atomic tokens (typically

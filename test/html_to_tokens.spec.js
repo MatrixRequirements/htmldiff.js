@@ -155,6 +155,17 @@ describe('htmlToTokens', function(){
                 expect(cut(atomic)).eql(tokenize([atomic]));
             });
 
+            it('should key a wrapper by its own data-htmldiff-id, not a nested child one', function(){
+                var atomic = '<strong data-htmldiff-id="s1">' +
+                        '<em data-htmldiff-id="e1">C</em></strong>';
+                expect(cut(atomic)[0].key).eql('s1');
+            });
+
+            it('should not key an unkeyed atomic tag by a nested child data-htmldiff-id', function(){
+                var atomic = '<a><em data-htmldiff-id="e1">C</em></a>';
+                expect(cut(atomic)[0].key).eql('<a>');
+            });
+
             it('should not bump depth on differently-named tags that share a prefix', function(){
                 // a tag must not be matched by an atomic tag named "a" appearing as <article>.
                 var atomic = '<a href="x"><article>hi</article></a>';
