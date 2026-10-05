@@ -1,4 +1,3 @@
-"use strict";
 /**
  * htmldiff.js compares HTML content. It creates a diff between two HTML documents by combining
  * the two documents and wrapping the differences with <ins> and <del> tags.
@@ -19,12 +18,13 @@
  *   htmldiff('<p>this is some text</p>', '<p>this is some more text</p>', 'diff-class')
  *   == '<p>this is some <ins class="diff-class">more </ins>text</p>'
  */
-const atomicTags_1 = require("./core/atomicTags");
-const diff_1 = require("./core/diff");
-const matching_1 = require("./core/matching");
-const operations_1 = require("./core/operations");
-const tokens_1 = require("./core/tokens");
-const tables_1 = require("./tables");
+import { buildAtomicTagsRegExp, defaultAtomicTagsRegExp, setAtomicTagsRegExp } from "./core/atomicTags";
+import { diffCore, renderOperations } from "./core/diff";
+import { createMap, createSegment, findBestMatch, findMatchingBlocks } from "./core/matching";
+import { calculateOperations } from "./core/operations";
+import { createToken, getKeyForToken, htmlToTokens } from "./core/tokens";
+import { TableRedlining } from "./tables";
+
 /**
  * Compares two pieces of HTML content and returns the combined content with differences
  * wrapped in <ins> and <del> tags.
@@ -38,22 +38,26 @@ const tables_1 = require("./tables");
  *    `iframe,object,math,svg,script,video,head,style` will be used.
  * @returns The combined HTML content with differences wrapped in <ins> and <del> tags.
  */
-function diff(before, after, className, dataPrefix, atomicTags) {
+function diff(before: string, after: string, className?: string | null, dataPrefix?: string | null, atomicTags?: string | null): string {
     // Enable user provided atomic tag list.
-    (0, atomicTags_1.setAtomicTagsRegExp)(atomicTags ? (0, atomicTags_1.buildAtomicTagsRegExp)(atomicTags) : atomicTags_1.defaultAtomicTagsRegExp);
-    const tables = new tables_1.TableRedlining((oldContent, newContent) => (0, diff_1.diffCore)(oldContent, newContent, className, dataPrefix));
+    setAtomicTagsRegExp(atomicTags ? buildAtomicTagsRegExp(atomicTags) : defaultAtomicTagsRegExp);
+
+    const tables = new TableRedlining((oldContent, newContent) => diffCore(oldContent, newContent, className, dataPrefix));
     const prepared = tables.redline(before, after);
-    return (0, diff_1.diffCore)(prepared.before, prepared.after, className, dataPrefix);
+
+    return diffCore(prepared.before, prepared.after, className, dataPrefix);
 }
+
 // the stages of the flat diff, for callers that run them one by one
-diff.htmlToTokens = tokens_1.htmlToTokens;
-diff.calculateOperations = operations_1.calculateOperations;
-diff.renderOperations = diff_1.renderOperations;
-diff.findMatchingBlocks = Object.assign(matching_1.findMatchingBlocks, {
-    findBestMatch: matching_1.findBestMatch,
-    createMap: matching_1.createMap,
-    createToken: tokens_1.createToken,
-    createSegment: matching_1.createSegment,
-    getKeyForToken: tokens_1.getKeyForToken,
+diff.htmlToTokens = htmlToTokens;
+diff.calculateOperations = calculateOperations;
+diff.renderOperations = renderOperations;
+diff.findMatchingBlocks = Object.assign(findMatchingBlocks, {
+    findBestMatch,
+    createMap,
+    createToken,
+    createSegment,
+    getKeyForToken,
 });
-module.exports = diff;
+
+export = diff;

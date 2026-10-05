@@ -2,7 +2,7 @@
     "name": "@matrixreq/htmldiff",
     "description": "Diff and markup HTML with <ins> and <del> tags",
     "companyname": "Matrix Requirements",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "keywords": [
         "diff",
         "html",
@@ -25,31 +25,35 @@
         "htmldiff": "./htmldiff-cli.js"
     },
     "files": [
-        "js/htmldiff.js",
-        "js/htmldiff.d.ts",
+        "js/**/*.js",
+        "js/**/*.d.ts",
         "sample/*",
-        "test/*",
         "htmldiff-cli.js"
     ],
     "types": "js/htmldiff.d.ts",
-    "dependencies": {},
     "devDependencies": {
+        "@types/chai": "^4.3.20",
+        "@types/mocha": "^10.0.10",
         "@types/node": "18.7.11",
         "@typescript-eslint/eslint-plugin": "5.34.0",
         "@typescript-eslint/parser": "5.34.0",
         "chai": "*",
         "eslint": "8.22.0",
         "eslint-plugin-jsdoc": "39.3.6",
+        "mocha": "*",
         "pkg": "5.8.0",
-        "typescript": "4.7.4",
-        "mocha": "*"
+        "ts-node": "^10.9.2",
+        "typescript": "4.7.4"
     },
     "scripts": {
-        "test": "mocha -R min",
+        "prebuild": "node -e \"require('fs').rmSync('js',{recursive:true,force:true})\"",
+        "build": "tsc -p tsconfig.build.json",
+        "prepublishOnly": "npm run make",
+        "test": "npm run build && tsc -p tsconfig.json && mocha -R min",
         "testsample": "node htmldiff-cli.js sample/before.html sample/after.html - -c myDiffClass -p myPrefix",
-        "lint": "eslint -c eslintrc.json --parser-options=project:./tsconfig.json --ext .ts ./",
+        "lint": "eslint -c eslintrc.json --ext .ts ./",
         "premake": "npm run lint",
-        "make": "tsc -p tsconfig.json && node -e \"require('fs').unlinkSync('./htmldiff-cli.d.ts')\"",
+        "make": "npm run build && tsc -p tsconfig.cli.json",
         "pack-macos-aarch64": "pkg -t node18-macos-arm64       -C GZip --output ./bin/macos-aarch64/htmldiff-cli htmldiff-cli.js -c ./pkg.json",
         "pack-macos-x64": "    pkg -t node18-macos-x64         -C GZip --output ./bin/macos-x64/htmldiff-cli     htmldiff-cli.js -c ./pkg.json",
         "pack-win32-x64": "    pkg -t node18-win32-x64         -C GZip --output ./bin/win32-x64/htmldiff-cli     htmldiff-cli.js -c ./pkg.json",
