@@ -13,7 +13,7 @@
     "homepage": "https://github.com/MatrixRequirements/htmldiff.js",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/MatrixRequirements/htmldiff.js"
+        "url": "git+https://github.com/MatrixRequirements/htmldiff.js.git"
     },
     "readme": "README.md",
     "bugs": {
@@ -22,7 +22,7 @@
     "license": "MIT",
     "main": "js/htmldiff.js",
     "bin": {
-        "htmldiff": "./htmldiff-cli.js"
+        "htmldiff": "htmldiff-cli.js"
     },
     "files": [
         "js/**/*.js",
@@ -51,7 +51,7 @@
         "prepublishOnly": "npm run make",
         "test": "npm run build && tsc -p tsconfig.json && mocha -R min",
         "testsample": "node htmldiff-cli.js sample/before.html sample/after.html - -c myDiffClass -p myPrefix",
-        "lint": "eslint -c eslintrc.json --ext .ts ./",
+        "lint": "npm run build && eslint -c eslintrc.json --ext .ts ./",
         "premake": "npm run lint",
         "make": "npm run build && tsc -p tsconfig.cli.json",
         "pack-macos-aarch64": "pkg -t node18-macos-arm64       -C GZip --output ./bin/macos-aarch64/htmldiff-cli htmldiff-cli.js -c ./pkg.json",
