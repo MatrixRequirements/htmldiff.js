@@ -11,19 +11,6 @@ import { Alignment, SameAlignment } from "./SequenceAligner";
 import { Table } from "./Table";
 import { TableVersion } from "./TableVersion";
 
-/** An item both versions have, none of whose rows matched. */
-export interface ReplacedItemGroup {
-    oldIndexes: number[];
-    newIndexes: number[];
-    /** The merged column the item cell is in. */
-    column: number;
-    key: string;
-    /** The new version's item cell, shown once on the first old row. */
-    itemCell: Cell;
-    oldItemCell: Cell;
-    placed: boolean;
-}
-
 /** The merged cells of two versions of a table. */
 export class MergedCells {
     private readonly oldVersion: TableVersion;
@@ -244,98 +231,5 @@ export class MergedCells {
                 this.newVersion.mergedCells[oldCell.mergedKey] = this.oldVersion.mergedCells[oldCell.mergedKey];
             });
         });
-    }
-
-    /**
-     * An item both versions have, none of whose rows is the same row in both: its old rows are
-     * deleted and its new rows added, but the item itself stays. Its item cell is shown once,
-     * on the first of its old rows, spanning all of them. By item, as the first ref of a row
-     * names it.
-     * @param columns The column alignments.
-     * @param rows The row alignments.
-     * @param oldItems The item of every old row, '' for none.
-     * @param newItems The item of every new row, '' for none.
-     * @returns The groups by item.
-     */
-    findReplacedItemGroups(columns: Alignment[], rows: Alignment[], oldItems: string[], newItems: string[]): Record<string, ReplacedItemGroup> {
-        const keptItems: Record<string, boolean> = {};
-        const candidates: Record<string, { oldIndexes: number[]; newIndexes: number[] }> = {};
-        rows.forEach((row) => {
-            if (row.kind === "same") {
-                keptItems[oldItems[row.oldIndex]] = true;
-                keptItems[newItems[row.newIndex]] = true;
-            }
-        });
-        const candidateOf = (item: string): { oldIndexes: number[]; newIndexes: number[] } | null => {
-            if (item === "" || keptItems[item]) {
-                return null;
-            }
-            candidates[item] = candidates[item] || { oldIndexes: [], newIndexes: [] };
-            return candidates[item];
-        };
-        rows.forEach((row) => {
-            if (row.kind === "deleted") {
-                const candidate = candidateOf(oldItems[row.oldIndex]);
-                if (candidate) {
-                    candidate.oldIndexes.push(row.oldIndex);
-                }
-            } else if (row.kind === "added") {
-                const candidate = candidateOf(newItems[row.newIndex]);
-                if (candidate) {
-                    candidate.newIndexes.push(row.newIndex);
-                }
-            }
-        });
-
-        const groups: Record<string, ReplacedItemGroup> = {};
-        Object.keys(candidates).forEach((item) => {
-            const candidate = candidates[item];
-            const firstOld = candidate.oldIndexes[0];
-            const firstNew = candidate.newIndexes[0];
-            if (
-                firstOld === undefined ||
-                firstNew === undefined ||
-                !MergedCells.isConsecutive(candidate.oldIndexes) ||
-                !MergedCells.isConsecutive(candidate.newIndexes)
-            ) {
-                return;
-            }
-            const oldCellIndex = this.oldVersion.itemCellIndex(firstOld);
-            const newCellIndex = this.newVersion.itemCellIndex(firstNew);
-            let column = -1;
-            columns.forEach((alignment, index) => {
-                if (alignment.kind === "same" && alignment.oldIndex === oldCellIndex && alignment.newIndex === newCellIndex) {
-                    column = index;
-                }
-            });
-            const oldItemCell = oldCellIndex === -1 ? null : this.oldVersion.cells[firstOld][oldCellIndex];
-            const itemCell = newCellIndex === -1 ? null : this.newVersion.cells[firstNew][newCellIndex];
-            if (column === -1 || !oldItemCell || !itemCell || oldItemCell.partOf !== null || itemCell.partOf !== null) {
-                return;
-            }
-            if (itemCell.mergedKey === null) {
-                itemCell.mergedKey = `item-${firstNew}`;
-                this.newVersion.mergedCells[itemCell.mergedKey] = itemCell.signature();
-            }
-            groups[item] = {
-                oldIndexes: candidate.oldIndexes,
-                newIndexes: candidate.newIndexes,
-                column,
-                key: itemCell.mergedKey,
-                itemCell,
-                oldItemCell,
-                placed: false,
-            };
-        });
-        return groups;
-    }
-
-    /**
-     * Whether the indexes follow each other without a gap.
-     * @param indexes The indexes, ascending.
-     * @returns True when consecutive.
-     */
-    private static isConsecutive(indexes: number[]): boolean {
-        return indexes.every((index, position) => position === 0 || index === indexes[position - 1] + 1);
     }
 }

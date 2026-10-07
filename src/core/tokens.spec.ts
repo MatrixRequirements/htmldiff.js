@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { createToken, isTag, isVoidTag, isVoidTagName, isWrappable } from "../../src/core/tokens";
+import { createToken, isTag, isVoidTag, isVoidTagName, isWrappable } from "./tokens";
 
 describe("tokens", () => {
     describe("isTag", () => {

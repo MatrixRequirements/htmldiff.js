@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { flatten, last, range, uniqueValues } from "../../src/tables/helpers";
+import { flatten, last, range, uniqueValues } from "./helpers";
 
 describe("helpers", () => {
     it("range lists the integers from start up to end", () => {

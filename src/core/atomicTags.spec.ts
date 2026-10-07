@@ -6,10 +6,11 @@ import {
     isStartOfAtomicTag,
     noAtomicTagsRegExp,
     setAtomicTagsRegExp,
-} from "../../src/core/atomicTags";
+} from "./atomicTags";
 
 describe("atomicTags", () => {
-    beforeEach(() => {
+    // the active atomic tags are module state: leave them as found for the other specs
+    afterEach(() => {
         setAtomicTagsRegExp(defaultAtomicTagsRegExp);
     });
 

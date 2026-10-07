@@ -74,6 +74,11 @@ export class TableRedlining {
 
             const oldTable = oldTables[alignment.oldIndex];
             const newTable = newTables[alignment.newIndex];
+            // a table with an identity of its own is one unit unless it asks for an inner diff, like
+            // any other element: the flat diff shows it as it is or replaces it whole
+            if (newTable.ownId() !== undefined && !newTable.wantsInnerDiff()) {
+                return;
+            }
             const mergedInner = new TableMerger(oldTable, newTable, this.diffContent).merge();
 
             // the same identity on both makes htmldiff emit the merged markup as it is, whatever the

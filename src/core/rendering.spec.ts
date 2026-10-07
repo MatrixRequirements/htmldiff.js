@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { findOpeningTagEnd, isInnerDiffToken, renderInnerDiff, splitAtomicTokenString, wrap } from "../../src/core/rendering";
+import { findOpeningTagEnd, isInnerDiffToken, renderInnerDiff, splitAtomicTokenString, wrap } from "./rendering";
 
 describe("rendering", () => {
     describe("findOpeningTagEnd", () => {

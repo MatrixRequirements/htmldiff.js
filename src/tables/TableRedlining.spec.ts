@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { TableRedlining } from "../../src/tables/TableRedlining";
+import { TableRedlining } from "./TableRedlining";
 
 describe("TableRedlining", () => {
     const diffContent = (before: string, after: string): string => `[${before}>${after}]`;
@@ -23,6 +23,12 @@ describe("TableRedlining", () => {
             plain([["a"], ["b"]], ' data-htmldiff-id="REQ-1" data-htmldiff-inner-diff="true"'),
         );
         expect(result.after).to.equal('<table data-htmldiff-id="REQ-1"><tbody><tr><td>a</td></tr><tr class="table-row-added"><td>b</td></tr></tbody></table>');
+    });
+
+    it("leaves a pair with an id but no inner diff untouched", () => {
+        const before = plain([["a"]], ' data-htmldiff-id="REQ-1"');
+        const after = plain([["b"]], ' data-htmldiff-id="REQ-1"');
+        expect(redline(before, after)).to.deep.equal({ before, after });
     });
 
     it("gives an unpaired table an id of its own", () => {

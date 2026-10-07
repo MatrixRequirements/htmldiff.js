@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { createToken, htmlToTokens, Token } from "../../src/core/tokens";
+import { createToken, htmlToTokens, Token } from "./tokens";
 
 describe("htmlToTokens", () => {
     const cut = htmlToTokens;

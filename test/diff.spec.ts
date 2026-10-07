@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import diff from "../../src/htmldiff";
+import diff from "../src/htmldiff";
 
 describe("Diff", () => {
     const cut = diff;

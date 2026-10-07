@@ -4,8 +4,6 @@
 export const TABLE_ID_PREFIX = "redline-table-";
 export const HTMLDIFF_ID_ATTRIBUTE = "data-htmldiff-id";
 export const INNER_DIFF_ATTRIBUTE = "data-htmldiff-inner-diff";
-/** Marks a document section: inside it, rows are about the items they reference. */
-export const SECTION_ATTRIBUTE = "data-shadow-boundary";
 export const ROW_ADDED_CLASS = "table-row-added";
 export const ROW_DELETED_CLASS = "table-row-deleted";
 export const CELL_ADDED_CLASS = "table-cell-added";

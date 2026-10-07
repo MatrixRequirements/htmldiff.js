@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { Cell } from "../../src/tables/Cell";
+import { Cell } from "./Cell";
 
 describe("Cell", () => {
     const cell = (openTag = "<td>", inner = ""): Cell => new Cell("td", openTag, inner, "</td>");
@@ -42,18 +42,6 @@ describe("Cell", () => {
 
         it("is empty for an empty cell", () => {
             expect(cell().signature()).to.equal("");
-        });
-    });
-
-    describe("itemRefs", () => {
-        it("lists the smart link ids in order", () => {
-            expect(
-                cell("<td>", '<smart-link data-htmldiff-id="A-1">A-1</smart-link> <smart-link data-htmldiff-id="B-2">B-2</smart-link>').itemRefs(),
-            ).to.deep.equal(["A-1", "B-2"]);
-        });
-
-        it("ignores other elements with an id", () => {
-            expect(cell("<td>", '<span data-htmldiff-id="x">x</span>').itemRefs()).to.deep.equal([]);
         });
     });
 

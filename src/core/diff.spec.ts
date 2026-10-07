@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { diffCore, renderOperations } from "../../src/core/diff";
-import { htmlToTokens } from "../../src/core/tokens";
+import { diffCore, renderOperations } from "./diff";
+import { htmlToTokens } from "./tokens";
 
 describe("diff", () => {
     describe("diffCore", () => {

@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import diff from "../../src/htmldiff";
+import diff from "../src/htmldiff";
 
 describe("Recursive inner diff (data-htmldiff-inner-diff)", () => {
     const cut = diff;

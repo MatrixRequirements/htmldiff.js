@@ -8,7 +8,7 @@ import { ColumnAligner } from "./ColumnAligner";
 import { CELL_ADDED_CLASS, CELL_DELETED_CLASS, CellDiff, ROW_ADDED_CLASS, ROW_DELETED_CLASS } from "./constants";
 import { last, range } from "./helpers";
 import { addTagClass } from "./html";
-import { MergedCells, ReplacedItemGroup } from "./MergedCells";
+import { MergedCells } from "./MergedCells";
 import { Row } from "./Row";
 import { RowAligner } from "./RowAligner";
 import { Alignment, IndexPair, SameAlignment } from "./SequenceAligner";
@@ -41,8 +41,8 @@ export class TableMerger {
         let newVersion = TableVersion.read(this.newTable);
 
         if (oldVersion.hasSpans || newVersion.hasSpans) {
-            // the same layout is only the same rows when no row says which item it is about
-            if (oldVersion.hasSameShapeAs(newVersion) && !oldVersion.hasItemRows() && !newVersion.hasItemRows()) {
+            // the same layout is only the same rows when no cell says which row it belongs to
+            if (oldVersion.hasSameShapeAs(newVersion) && !(oldVersion.hasRowKeys && newVersion.hasRowKeys)) {
                 this.diffCellsByPosition(oldVersion, newVersion);
                 return this.newTable.renderInner();
             }
@@ -194,8 +194,7 @@ export class TableMerger {
      * Writes the merged rows into the new table. Deleted rows go before the new row that
      * follows them, never inside another group. The rows a kept group lost or gained go under
      * its kept rows, so the group's merged cell spans the kept rows alone and every side by
-     * side view keeps its layout. An item whose rows all changed keeps its item cell once, on
-     * the first of its old rows.
+     * side view keeps its layout.
      * @param oldVersion The old version.
      * @param newVersion The new version.
      * @param columns The column alignments.
@@ -226,10 +225,6 @@ export class TableMerger {
             }
             anchor.insertAfter(tr);
         };
-
-        const oldItems = oldVersion.itemRefsByRow().map((refs) => refs[0] || "");
-        const newItems = newVersion.itemRefsByRow().map((refs) => refs[0] || "");
-        const replacedItemGroups: Record<string, ReplacedItemGroup> = mergedCells.findReplacedItemGroups(columns, rows, oldItems, newItems);
 
         const placeDeletedRow = (tr: Row, oldIndex: number, following: Alignment[]): void => {
             const group = oldVersion.groupSignatures(oldIndex);
@@ -264,9 +259,8 @@ export class TableMerger {
             if (row.kind === "added") {
                 const addedRow = newVersion.rows[row.newIndex];
                 const addedCells = newVersion.cells[row.newIndex];
-                const addedItemGroup = addedCells.length > 0 ? replacedItemGroups[newItems[row.newIndex]] : undefined;
-                const addedGroupTail = addedItemGroup ? null : lastKeptRowOfGroup(newVersion.groupSignatures(row.newIndex));
-                const addedInGroup = !!addedItemGroup || (!!addedGroupTail && addedCells.length > 0);
+                const addedGroupTail = lastKeptRowOfGroup(newVersion.groupSignatures(row.newIndex));
+                const addedInGroup = !!addedGroupTail && addedCells.length > 0;
                 addedRow.added = !addedInGroup;
                 if (!addedInGroup) {
                     addedRow.openTag = addTagClass(addedRow.openTag, ROW_ADDED_CLASS);
@@ -282,10 +276,6 @@ export class TableMerger {
                 if (addedInGroup) {
                     addedRow.changedInGroup = true;
                     addedRow.changeClass = CELL_ADDED_CLASS;
-                    // the item cell moved onto the group's first old row
-                    if (addedItemGroup && addedRow.cells[addedItemGroup.column] === addedItemGroup.itemCell) {
-                        addedRow.cells[addedItemGroup.column] = Cell.part(addedItemGroup.key, addedCells);
-                    }
                     TableMerger.markChangedCells(addedRow.cells, CELL_ADDED_CLASS);
                     if (addedGroupTail && newVersion.rows.indexOf(addedGroupTail) > row.newIndex) {
                         addedRow.detach();
@@ -297,9 +287,8 @@ export class TableMerger {
 
             const oldRow = oldVersion.rows[row.oldIndex];
             const oldCells = oldVersion.cells[row.oldIndex];
-            const deletedItemGroup = oldCells.length > 0 ? replacedItemGroups[oldItems[row.oldIndex]] : undefined;
-            const deletedGroupTail = deletedItemGroup ? null : lastKeptRowOfGroup(oldVersion.groupSignatures(row.oldIndex));
-            const deletedInGroup = !!deletedItemGroup || (!!deletedGroupTail && oldCells.length > 0);
+            const deletedGroupTail = lastKeptRowOfGroup(oldVersion.groupSignatures(row.oldIndex));
+            const deletedInGroup = !!deletedGroupTail && oldCells.length > 0;
             const tr = new Row(
                 deletedInGroup ? oldRow.openTag : addTagClass(oldRow.openTag, ROW_DELETED_CLASS),
                 oldCells.map((cell) => cell.clone()),
@@ -318,19 +307,7 @@ export class TableMerger {
                 tr.changedInGroup = true;
                 tr.changeClass = CELL_DELETED_CLASS;
                 TableMerger.markChangedCells(tr.cells, CELL_DELETED_CLASS);
-                if (deletedItemGroup) {
-                    // the item cell, once, on the first old row; the other rows hold parts of it
-                    if (deletedItemGroup.placed) {
-                        tr.cells[deletedItemGroup.column] = Cell.part(deletedItemGroup.key, oldCells);
-                    } else {
-                        this.diffCellContent(deletedItemGroup.oldItemCell, deletedItemGroup.itemCell);
-                        tr.cells[deletedItemGroup.column] = deletedItemGroup.itemCell;
-                        deletedItemGroup.placed = true;
-                    }
-                    newVersion.rows[deletedItemGroup.newIndexes[0]].insertBefore(tr);
-                    return;
-                }
-                insertAfterGroup(deletedGroupTail as Row, tr);
+                insertAfterGroup(deletedGroupTail , tr);
                 return;
             }
             if (deletedGroupTail) {

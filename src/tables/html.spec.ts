@@ -9,7 +9,7 @@ import {
     scanTags,
     setTagAttribute,
     Tag,
-} from "../../src/tables/html";
+} from "./html";
 
 describe("html", () => {
     describe("scanTags", () => {

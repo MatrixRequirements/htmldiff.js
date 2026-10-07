@@ -5,6 +5,9 @@
   "extension": [
     "ts"
   ],
-  "spec": "test/**/*.spec.ts",
+  "spec": [
+    "src/**/*.spec.ts",
+    "test/**/*.spec.ts"
+  ],
   "ui": "bdd"
 }

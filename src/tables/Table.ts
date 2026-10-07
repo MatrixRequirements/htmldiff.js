@@ -3,7 +3,7 @@
  * row appended to the table body goes. The merged table is rendered back from it.
  */
 import { Cell } from "./Cell";
-import { HTMLDIFF_ID_ATTRIBUTE, SECTION_ATTRIBUTE } from "./constants";
+import { HTMLDIFF_ID_ATTRIBUTE, INNER_DIFF_ATTRIBUTE } from "./constants";
 import { Element, findElements, getTagAttribute, scanTags, setTagAttribute } from "./html";
 import { Row } from "./Row";
 
@@ -24,23 +24,20 @@ export class Table {
     readonly end: number;
     readonly inner: string;
     /** Whether a document section holds the table. */
-    readonly inSection: boolean;
     readonly chunks: Chunk[];
     readonly appendChunk: AppendChunk;
 
     /**
      * @param element The table element.
-     * @param inSection Whether a document section holds the table.
      * @param chunks The inner html as chunks.
      * @param appendChunk The place where a row appended to the table body goes.
      */
-    private constructor(element: Element, inSection: boolean, chunks: Chunk[], appendChunk: AppendChunk) {
+    private constructor(element: Element, chunks: Chunk[], appendChunk: AppendChunk) {
         this.openTag = element.openTag;
         this.closeTag = element.closeTag;
         this.start = element.start;
         this.end = element.end;
         this.inner = element.inner;
-        this.inSection = inSection;
         this.chunks = chunks;
         this.appendChunk = appendChunk;
     }
@@ -48,10 +45,9 @@ export class Table {
     /**
      * Reads a table.
      * @param element The table element.
-     * @param inSection Whether a document section holds the table.
      * @returns The table.
      */
-    static read(element: Element, inSection: boolean): Table {
+    static read(element: Element): Table {
         const inner = element.inner;
         const rowElements = findElements(inner, ["tr"]);
         const containers: Record<number, string | null> = {};
@@ -112,43 +108,16 @@ export class Table {
             chunks.push(appendChunk);
         }
 
-        return new Table(element, inSection, chunks, appendChunk);
+        return new Table(element, chunks, appendChunk);
     }
 
     /**
-     * The tables outside any other table, each knowing whether a document section holds it.
+     * The tables outside any other table.
      * @param html The html.
      * @returns The tables in document order.
      */
     static findTopLevel(html: string): Table[] {
-        const elements = findElements(html, ["table"]);
-        const inSection: Record<number, boolean> = {};
-        const openTags: { name: string; inSection: boolean }[] = [];
-        let tableIndex = 0;
-
-        scanTags(html, (tag) => {
-            if (tag.isComment) {
-                return;
-            }
-            if (tag.isClosing) {
-                for (let depth = openTags.length - 1; depth >= 0; depth--) {
-                    if (openTags[depth].name === tag.name) {
-                        openTags.length = depth;
-                        break;
-                    }
-                }
-                return;
-            }
-            if (elements[tableIndex] && elements[tableIndex].start === tag.start) {
-                inSection[tag.start] = openTags.some((open) => open.inSection);
-                tableIndex++;
-            }
-            if (!tag.isSelfClosing) {
-                openTags.push({ name: tag.name, inSection: getTagAttribute(tag.text, SECTION_ATTRIBUTE) !== null });
-            }
-        });
-
-        return elements.map((element) => Table.read(element, inSection[element.start] === true));
+        return findElements(html, ["table"]).map((element) => Table.read(element));
     }
 
     /**
@@ -157,6 +126,16 @@ export class Table {
      */
     ownId(): string | undefined {
         return getTagAttribute(this.openTag, HTMLDIFF_ID_ATTRIBUTE) || undefined;
+    }
+
+    /**
+     * Whether the table asks for its content to be diffed. An element with an identity of its
+     * own is one unit unless it says otherwise, and a table is no exception.
+     * @returns True with the inner diff flag.
+     */
+    wantsInnerDiff(): boolean {
+        const flag = getTagAttribute(this.openTag, INNER_DIFF_ATTRIBUTE);
+        return flag !== null && flag !== "false";
     }
 
     /**

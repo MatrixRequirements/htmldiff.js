@@ -3,7 +3,7 @@
  * merged cells are after the spans were expanded.
  */
 import { Cell } from "./Cell";
-import { flatten, range, uniqueValues } from "./helpers";
+import { flatten, range } from "./helpers";
 import { Row } from "./Row";
 import { countValues, ValueCounts } from "./similarity";
 import { Table } from "./Table";
@@ -176,8 +176,8 @@ export class TableVersion {
     }
 
     /**
-     * The identities of a row's key cells, in order, a part standing for its merged cell. Empty
-     * unless cells carry their own identity.
+     * The identities of a row's key cells, in order, a part standing for its merged cell: the
+     * producer's statement of what the row is about. Empty unless cells carry their own identity.
      * @param rowIndex The row.
      * @returns The keys.
      */
@@ -194,75 +194,6 @@ export class TableVersion {
             }
         });
         return keys;
-    }
-
-    /**
-     * The item refs every row mentions, as smart links, in the order they appear: the first is
-     * the item the row is about, the rest are its links. Only inside a document section: in a
-     * rich text or a table field a ref is a value like any other. A part of a merged cell stands
-     * for that cell, so every row of a group is about the group's item too. Where cells carry
-     * their own identity, those identities are the row's refs.
-     * @returns The refs of every row.
-     */
-    itemRefsByRow(): string[][] {
-        if (this.hasRowKeys) {
-            return this.rows.map((_, rowIndex) => this.rowKeys(rowIndex));
-        }
-        if (!this.table.inSection) {
-            return this.rows.map(() => []);
-        }
-        const mergedCellRefs: Record<string, string[]> = Object.create(null) as Record<string, string[]>;
-        flatten(this.cells).forEach((cell) => {
-            if (cell.mergedKey !== null) {
-                mergedCellRefs[cell.mergedKey] = cell.itemRefs();
-            }
-        });
-        return this.cells.map((rowCells) =>
-            uniqueValues(flatten(rowCells.map((cell) => (cell.partOf === null ? cell.itemRefs() : mergedCellRefs[cell.partOf] || [])))),
-        );
-    }
-
-    /**
-     * Whether any row names an item.
-     * @returns True when a row has refs.
-     */
-    hasItemRows(): boolean {
-        return this.itemRefsByRow().some((refs) => refs.length > 0);
-    }
-
-    /**
-     * The item refs a cell holds, a part standing for its merged cell.
-     * @param rowIndex The row.
-     * @param cellIndex The cell.
-     * @returns The refs.
-     */
-    cellRefs(rowIndex: number, cellIndex: number): string[] {
-        const cell = this.cells[rowIndex][cellIndex];
-        if (!cell) {
-            return [];
-        }
-        const owner = this.ownerOf(cell);
-        return owner ? owner.itemRefs() : [];
-    }
-
-    /**
-     * The cell a row names its item in: the first key cell, else the first cell holding item
-     * refs, a part standing for its merged cell.
-     * @param rowIndex The row.
-     * @returns The cell index, -1 when the row names no item.
-     */
-    itemCellIndex(rowIndex: number): number {
-        const cells = this.cells[rowIndex];
-        for (let index = 0; index < cells.length; index++) {
-            const owner = this.ownerOf(cells[index]);
-            if (!owner) {
-                continue;
-            }
-            if (this.hasRowKeys ? owner.ownId() !== null : owner.itemRefs().length > 0) {
-                return index;
-            }
-        }
-        return -1;
     }
 
     /**

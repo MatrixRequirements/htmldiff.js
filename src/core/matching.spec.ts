@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { createMap, createSegment, findBestMatch, findMatchingBlocks, Match, TokenMap } from "../../src/core/matching";
-import { createToken, htmlToTokens, Token } from "../../src/core/tokens";
+import { createMap, createSegment, findBestMatch, findMatchingBlocks, Match, TokenMap } from "./matching";
+import { createToken, htmlToTokens, Token } from "./tokens";
 
 describe("findMatchingBlocks", () => {
     const tokenize = (tokens: string[]): Token[] => tokens.map((token) => createToken(token));

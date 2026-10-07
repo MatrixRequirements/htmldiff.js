@@ -1,6 +1,6 @@
 /**
- * Which row of the old table is which row of the new one. In a document section a row is
- * about the item it references; elsewhere it is about whatever its cells say.
+ * Which row of the old table is which row of the new one: by the identities its producer gave
+ * its cells, else by what its cells say.
  */
 import { last, range } from "./helpers";
 import { Alignment, SameAlignment, SequenceAligner } from "./SequenceAligner";
@@ -28,38 +28,18 @@ export class RowAligner {
     }
 
     /**
-     * Refs only added to a cell, or only removed from it, leave it the same cell with other
-     * content. A ref swapped for another makes it another cell, and its row another row: a
-     * trace or an execution is named by its ref.
-     * @param oldRefs The old cell's refs.
-     * @param newRefs The new cell's refs.
-     * @returns True when one side's refs contain the other's.
-     */
-    static haveCompatibleRefs(oldRefs: string[], newRefs: string[]): boolean {
-        const contains = (refs: string[], others: string[]): boolean => others.every((ref) => refs.indexOf(ref) !== -1);
-        return contains(newRefs, oldRefs) || contains(oldRefs, newRefs);
-    }
-
-    /**
      * Rows are compared on kept columns only, so a column change can never make a row look
      * edited. Blank cells carry no identity; a line number column renumbers on every insert
      * and is ignored. A row that keeps less than half of what its cells said is deleted and
-     * added, never diffed. In a document section a row is about the item it references first:
-     * a row about another item is another row, so is a row where a ref was swapped. The rest is
-     * content; a row with nothing beside its item was emptied or filled, not replaced. Where
-     * both versions' cells carry their own identity, those cells alone decide: the same keys
-     * are the same row whatever its other cells say, other keys another row.
+     * added, never diffed. Where both versions' cells carry their own identity, those cells
+     * alone decide: the same keys are the same row whatever its other cells say, other keys
+     * another row.
      * @returns The row alignments.
      */
     align(): Alignment[] {
         const oldVersion = this.oldVersion;
         const newVersion = this.newVersion;
         const comparedColumns = this.comparedColumns;
-        const oldItemRefs = oldVersion.itemRefsByRow();
-        const newItemRefs = newVersion.itemRefsByRow();
-        const oldItemCells = oldItemRefs.map((refs, rowIndex) => (refs.length > 0 ? oldVersion.itemCellIndex(rowIndex) : -1));
-        const newItemCells = newItemRefs.map((refs, rowIndex) => (refs.length > 0 ? newVersion.itemCellIndex(rowIndex) : -1));
-
         const keyed = oldVersion.hasRowKeys && newVersion.hasRowKeys;
         const sameKeys = (oldKeys: string[], newKeys: string[]): boolean =>
             oldKeys.length === newKeys.length && oldKeys.every((key, index) => key === newKeys[index]);
@@ -68,44 +48,18 @@ export class RowAligner {
             if (keyed) {
                 return sameKeys(oldVersion.rowKeys(oldIndex), newVersion.rowKeys(newIndex)) ? 1 : 0;
             }
-            const oldRefs = oldItemRefs[oldIndex];
-            const newRefs = newItemRefs[newIndex];
-            const aboutItems = oldRefs.length > 0 || newRefs.length > 0;
-            if (aboutItems) {
-                if (oldRefs.length === 0 || newRefs.length === 0 || oldRefs[0] !== newRefs[0]) {
-                    return 0;
-                }
-                const compatible = comparedColumns.every((column) =>
-                    RowAligner.haveCompatibleRefs(oldVersion.cellRefs(oldIndex, column.oldIndex), newVersion.cellRefs(newIndex, column.newIndex)),
-                );
-                if (!compatible) {
-                    return 0;
-                }
-            }
             let compared = 0;
             let kept = 0;
-            let oldBlank = true;
-            let newBlank = true;
             comparedColumns.forEach((column) => {
-                // the cell naming the item is the row's identity, not its content
-                if (column.oldIndex === oldItemCells[oldIndex] || column.newIndex === newItemCells[newIndex]) {
-                    return;
-                }
                 const oldSignature = oldVersion.signatureAt(oldIndex, column.oldIndex);
                 const newSignature = newVersion.signatureAt(newIndex, column.newIndex);
-                oldBlank = oldBlank && oldSignature === "";
-                newBlank = newBlank && newSignature === "";
                 if (oldSignature === "" && newSignature === "") {
                     return;
                 }
                 compared++;
                 kept += cellSimilarity(oldSignature, newSignature);
             });
-            // an item's row with nothing beside the item was emptied or filled, not replaced
-            if (compared === 0 || (aboutItems && (oldBlank || newBlank))) {
-                return aboutItems ? 1 : NaN;
-            }
-            return kept / compared;
+            return compared === 0 ? NaN : kept / compared;
         };
 
         return new SequenceAligner({
@@ -115,8 +69,8 @@ export class RowAligner {
             byPosition: {
                 isOldBlank: (oldIndex) => comparedColumns.every((column) => oldVersion.signatureAt(oldIndex, column.oldIndex) === ""),
                 isNewBlank: (newIndex) => comparedColumns.every((column) => newVersion.signatureAt(newIndex, column.newIndex) === ""),
-                hasOldIdentity: (oldIndex) => oldItemRefs[oldIndex].length > 0,
-                hasNewIdentity: (newIndex) => newItemRefs[newIndex].length > 0,
+                hasOldIdentity: (oldIndex) => keyed && oldVersion.rowKeys(oldIndex).length > 0,
+                hasNewIdentity: (newIndex) => keyed && newVersion.rowKeys(newIndex).length > 0,
             },
         }).align();
     }

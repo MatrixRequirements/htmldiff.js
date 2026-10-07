@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { Cell } from "../../src/tables/Cell";
-import { Row } from "../../src/tables/Row";
+import { Cell } from "./Cell";
+import { Row } from "./Row";
 
 describe("Row", () => {
     const row = (text: string): Row => new Row("<tr>", [new Cell("td", "<td>", text, "</td>")], "tbody");

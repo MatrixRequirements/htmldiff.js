@@ -1,11 +1,11 @@
 import { expect } from "chai";
-import { findElements } from "../../src/tables/html";
-import { Table } from "../../src/tables/Table";
-import { TableMerger } from "../../src/tables/TableMerger";
+import { findElements } from "./html";
+import { Table } from "./Table";
+import { TableMerger } from "./TableMerger";
 
 describe("TableMerger", () => {
     const diffContent = (before: string, after: string): string => `[${before}>${after}]`;
-    const readTable = (markup: string, inSection = false): Table => Table.read(findElements(markup, ["table"])[0], inSection);
+    const readTable = (markup: string): Table => Table.read(findElements(markup, ["table"])[0]);
     const plain = (cells: string[][]): string =>
         `<table><tbody>${cells.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
     const merge = (oldMarkup: string, newMarkup: string): string => new TableMerger(readTable(oldMarkup), readTable(newMarkup), diffContent).merge();

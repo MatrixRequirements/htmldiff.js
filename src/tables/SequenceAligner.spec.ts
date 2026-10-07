@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { PositionalPairing, Sequence, SequenceAligner } from "../../src/tables/SequenceAligner";
+import { PositionalPairing, Sequence, SequenceAligner } from "./SequenceAligner";
 
 describe("SequenceAligner", () => {
     const sequence = (oldValues: string[], newValues: string[], byPosition: Partial<PositionalPairing> = {}): Sequence => ({

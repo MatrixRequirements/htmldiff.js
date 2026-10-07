@@ -1,12 +1,12 @@
 import { expect } from "chai";
-import { ColumnAligner } from "../../src/tables/ColumnAligner";
-import { findElements } from "../../src/tables/html";
-import { Alignment } from "../../src/tables/SequenceAligner";
-import { Table } from "../../src/tables/Table";
-import { TableVersion } from "../../src/tables/TableVersion";
+import { ColumnAligner } from "./ColumnAligner";
+import { findElements } from "./html";
+import { Alignment } from "./SequenceAligner";
+import { Table } from "./Table";
+import { TableVersion } from "./TableVersion";
 
 describe("ColumnAligner", () => {
-    const version = (markup: string): TableVersion => TableVersion.read(Table.read(findElements(markup, ["table"])[0], false));
+    const version = (markup: string): TableVersion => TableVersion.read(Table.read(findElements(markup, ["table"])[0]));
     const rows = (cells: string[][]): string =>
         `<table><tbody>${cells.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
     const same: Alignment[] = [

@@ -147,10 +147,13 @@ Limitations:
 
 ### Tables
 
-Tables are compared as structures before the flat diff runs. The two documents' top level
+Tables are compared as structures before the flat diff runs. A table with its own
+`data-htmldiff-id` takes part only when it also carries `data-htmldiff-inner-diff`, like every
+other element with an identity: without the inner-id it is one unit, shown as it is or replaced
+whole. The two documents' top level
 tables are paired (by their own `data-htmldiff-id` when they have one, otherwise by the values
 they hold; a table in the other's place is the same table only when the two still share half of
-what the smaller one holds, or when both sit in a document section), each pair is aligned
+what the smaller one holds, or when both are generated tables, see below), each pair is aligned
 column by column and row by row, and a merged table takes the place of the after version's
 table. A table without a partner is kept whole, so the flat diff wraps it as added or deleted:
 
@@ -167,21 +170,14 @@ table. A table without a partner is kept whole, so the flat diff wraps it as add
   the group's first kept row, spans it like any other row of the group. A view that hides the
   changed cells then hides nothing the span counts on, so the layout holds. A whole group that
   one version has is added or deleted row by row.
+- in a table without such a statement, a change of its merged cells (a cell merged, split, a
+  span grown or shrunk) makes it another table: both versions are kept whole.
 
-Inside an element with a `data-shadow-boundary` attribute a row is identified by the item
-references it holds, as `<smart-link data-htmldiff-id="...">` elements. The first reference
-names the item the row is about: a row about another item is another row. A cell where a
-reference was swapped for another (a trace, an execution) makes another row too. References
-only added to a cell or only removed from it leave the row the same row, and then its other
-cells decide as for any row: at least half of them kept means an edited row with cell diffs,
-less means the row was replaced. An item both versions have, none of whose rows matched,
-keeps its item cell once: it spans the old rows, whose cells are deleted, and the new rows,
-whose cells are added.
-
-A producer may give the cells that name a row their own `data-htmldiff-id` (the item, the
-trace, the execution). When both versions have such cells, those alone pair the rows: the same
-identities are the same row, whatever its other cells say, and they get cell diffs; another
-identity is another row. Tables without such cells are read as above.
+The diff reads nothing else from the content. A producer that knows what a row is about says
+so by giving the cells an identity with `data-htmldiff-id`. 
+When both versions carry such cells, those alone pair the rows: the same
+identities are the same row, whatever its other cells say, and they get cell diffs; other
+identities are another row, deleted and added whole.
 
 Both versions of a pair get the same `data-htmldiff-id` (`redline-table-<n>` unless the table
 had one), a table only one version has gets one of its own, so the flat diff keeps every table
@@ -257,15 +253,18 @@ published.
   handles spans, `TableMerger` writes the merged table and `TableRedlining` is the pass
   itself. `html.ts`, `similarity.ts` and `helpers.ts` are plain helper functions.
 
-Tests are TypeScript too, in `test/`, run by mocha through `ts-node` against `src/`. Every
-module and class has a spec of its own (`test/core/`, `test/tables/`), next to the end to end
-specs (`test/*.spec.ts`, `test/tables/redlining.spec.ts`).
+Tests are TypeScript too, run by mocha through `ts-node`. Every module and class has a spec
+next to it (`src/**/*.spec.ts`, left out of the build); the end to end specs that go through
+`diff()` itself live in `test/`.
 
 Scripts:
 
 - `npm run build` compiles `src/` to `js/`.
 - `npm test` builds, type-checks sources and specs, then runs the specs.
 - `npm run lint` checks sources and specs with ESLint.
+- `npm run verify` does all of that in one go and compiles the CLI; `npm publish` runs it first
+  (`prepublishOnly`), so nothing unbuilt or untested can be published. `npm install` in a clone
+  builds `js/` as well (`prepare`).
 - `npm run make` builds the library and the command line interface, `htmldiff-cli.ts`.
 - `npm run testsample` diffs the HTML sample files from the directory `sample` and logs the
   result to the console.

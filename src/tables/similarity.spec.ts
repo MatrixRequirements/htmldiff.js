@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { cellSimilarity, countsSize, countValues, distinctSharedShare, retainedShare, sharedShare, valueOverlap } from "../../src/tables/similarity";
+import { cellSimilarity, countsSize, countValues, distinctSharedShare, retainedShare, sharedShare, valueOverlap } from "./similarity";
 
 describe("similarity", () => {
     describe("countValues", () => {

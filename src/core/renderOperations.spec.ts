@@ -1,7 +1,7 @@
 import { expect } from "chai";
-import { renderOperations } from "../../src/core/diff";
-import { calculateOperations } from "../../src/core/operations";
-import { createToken, Token } from "../../src/core/tokens";
+import { renderOperations } from "./diff";
+import { calculateOperations } from "./operations";
+import { createToken, Token } from "./tokens";
 
 describe("renderOperations", () => {
     const tokenize = (tokens: string[]): Token[] => tokens.map((token) => createToken(token));

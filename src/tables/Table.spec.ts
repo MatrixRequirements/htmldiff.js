@@ -1,11 +1,11 @@
 import { expect } from "chai";
-import { Cell } from "../../src/tables/Cell";
-import { findElements } from "../../src/tables/html";
-import { Row } from "../../src/tables/Row";
-import { Table } from "../../src/tables/Table";
+import { Cell } from "./Cell";
+import { findElements } from "./html";
+import { Row } from "./Row";
+import { Table } from "./Table";
 
 describe("Table", () => {
-    const readFirst = (markup: string, inSection = false): Table => Table.read(findElements(markup, ["table"])[0], inSection);
+    const readFirst = (markup: string): Table => Table.read(findElements(markup, ["table"])[0]);
     const row = (text: string): Row => new Row("<tr>", [new Cell("td", "<td>", text, "</td>")], null);
 
     describe("read", () => {
@@ -34,18 +34,10 @@ describe("Table", () => {
     });
 
     describe("findTopLevel", () => {
-        it("finds outer tables and whether a section holds them", () => {
-            const tables = Table.findTopLevel(
-                '<div data-shadow-boundary=""><table><tr><td>a</td></tr></table></div><table><tr><td><table><tr><td>in</td></tr></table></td></tr></table>',
-            );
-            expect(tables.length).to.equal(2);
-            expect(tables[0].inSection).to.equal(true);
-            expect(tables[1].inSection).to.equal(false);
-        });
-
-        it("ignores a closed section", () => {
-            const tables = Table.findTopLevel('<div data-shadow-boundary="">x</div><table><tr><td>a</td></tr></table>');
-            expect(tables[0].inSection).to.equal(false);
+        it("finds outer tables only", () => {
+            const outer = "<table><tr><td><table><tr><td>in</td></tr></table></td></tr></table>";
+            const tables = Table.findTopLevel(`<div><table><tr><td>a</td></tr></table></div>${outer}`);
+            expect(tables.map((table) => table.openTag + table.renderInner() + table.closeTag)).to.deep.equal(["<table><tr><td>a</td></tr></table>", outer]);
         });
     });
 
@@ -58,6 +50,12 @@ describe("Table", () => {
             expect(none.ownId()).to.equal(undefined);
             expect(none.ensureId("x")).to.equal("x");
             expect(none.openTag).to.equal('<table data-htmldiff-id="x">');
+        });
+
+        it("asks for an inner diff only with the flag", () => {
+            expect(readFirst('<table data-htmldiff-id="REQ-1" data-htmldiff-inner-diff="true"><tr><td>a</td></tr></table>').wantsInnerDiff()).to.equal(true);
+            expect(readFirst('<table data-htmldiff-id="REQ-1"><tr><td>a</td></tr></table>').wantsInnerDiff()).to.equal(false);
+            expect(readFirst('<table data-htmldiff-id="REQ-1" data-htmldiff-inner-diff="false"><tr><td>a</td></tr></table>').wantsInnerDiff()).to.equal(false);
         });
     });
 

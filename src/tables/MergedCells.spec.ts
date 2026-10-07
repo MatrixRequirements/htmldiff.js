@@ -1,13 +1,12 @@
 import { expect } from "chai";
-import { findElements } from "../../src/tables/html";
-import { MergedCells } from "../../src/tables/MergedCells";
-import { Alignment } from "../../src/tables/SequenceAligner";
-import { Table } from "../../src/tables/Table";
-import { TableVersion } from "../../src/tables/TableVersion";
+import { findElements } from "./html";
+import { MergedCells } from "./MergedCells";
+import { Alignment } from "./SequenceAligner";
+import { Table } from "./Table";
+import { TableVersion } from "./TableVersion";
 
 describe("MergedCells", () => {
-    const ref = (itemRef: string): string => `<smart-link data-htmldiff-id="${itemRef}">${itemRef}</smart-link>`;
-    const readTable = (markup: string, inSection = false): Table => Table.read(findElements(markup, ["table"])[0], inSection);
+    const readTable = (markup: string): Table => Table.read(findElements(markup, ["table"])[0]);
     const layout = (table: Table): string[] =>
         table.rows().map((row) =>
             row.cells
@@ -92,32 +91,6 @@ describe("MergedCells", () => {
             // the plain new cell took over the old merged cell
             expect(newVersion.cells[0][0].mergedKey).to.equal("old-0-0");
             expect(newVersion.mergedCells["old-0-0"]).to.equal("g");
-        });
-    });
-
-    describe("findReplacedItemGroups", () => {
-        it("finds an item none of whose rows matched", () => {
-            const oldVersion = TableVersion.read(readTable(`<table><tbody><tr><td>${ref("S-1")}</td><td>old</td></tr></tbody></table>`, true));
-            const newVersion = TableVersion.read(readTable(`<table><tbody><tr><td>${ref("S-1")}</td><td>new</td></tr></tbody></table>`, true));
-            const groups = new MergedCells(oldVersion, newVersion).findReplacedItemGroups(
-                twoColumns,
-                [
-                    { kind: "deleted", oldIndex: 0 },
-                    { kind: "added", newIndex: 0 },
-                ],
-                ["S-1"],
-                ["S-1"],
-            );
-            expect(Object.keys(groups)).to.deep.equal(["S-1"]);
-            expect(groups["S-1"].column).to.equal(0);
-            expect(groups["S-1"].key).to.equal("item-0");
-            expect(groups["S-1"].itemCell).to.equal(newVersion.cells[0][0]);
-        });
-
-        it("skips an item one of whose rows was kept", () => {
-            const v = TableVersion.read(readTable(`<table><tbody><tr><td>${ref("S-1")}</td><td>x</td></tr></tbody></table>`, true));
-            const groups = new MergedCells(v, v).findReplacedItemGroups([], [{ kind: "same", oldIndex: 0, newIndex: 0 }], ["S-1"], ["S-1"]);
-            expect(groups).to.deep.equal({});
         });
     });
 });

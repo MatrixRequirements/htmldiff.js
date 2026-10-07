@@ -130,24 +130,6 @@ export class Cell {
     }
 
     /**
-     * The item refs the cell holds, as smart links, in order.
-     * @returns The refs.
-     */
-    itemRefs(): string[] {
-        const refs: string[] = [];
-        scanTags(this.inner, (tag) => {
-            if (tag.isClosing || tag.name !== "smart-link") {
-                return;
-            }
-            const id = getTagAttribute(tag.text, HTMLDIFF_ID_ATTRIBUTE);
-            if (id !== null) {
-                refs.push(id);
-            }
-        });
-        return refs;
-    }
-
-    /**
      * The identity the cell itself carries, when its producer gave it one: such a cell names
      * its row.
      * @returns The identity, null when the cell has none.

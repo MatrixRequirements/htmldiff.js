@@ -23,13 +23,13 @@ export class TableAligner {
     /**
      * A table with an identity of its own is the same table only where that identity is:
      * another item's table is never an edit of it, however alike the two look. The rest is
-     * matched by what it contains, then by position. In a document section the header names
-     * the table: two headed tables with different headers are different tables, and the table
-     * in the other's place with the same header is the section's table, generated anew each
-     * time, whatever its rows now say. In a text a table in the other's place is that table
-     * edited only when the values the two share account for half of the smaller one's cells,
-     * a repeated value counted once: otherwise one was deleted and a new one written, whatever
-     * their shapes. Merged cells in a text are layout: a table whose merged cells changed is
+     * matched by what it contains, then by position. A table whose cells name their rows was
+     * generated: the header names it, so two headed ones with different headers are different
+     * tables, and the one in the other's place with the same header is the same table, drawn
+     * anew each time, whatever its rows now say. Any other table in the other's place is that
+     * table edited only when the values the two share account for half of the smaller one's
+     * cells, a repeated value counted once: otherwise one was deleted and a new one written,
+     * whatever their shapes. Its merged cells are layout: a table whose merged cells changed is
      * another table, a merged cell is never diffed against the cells it swallowed.
      * @returns The table alignments.
      */
@@ -44,16 +44,16 @@ export class TableAligner {
         const newValueCounts = newVersions.map((version) => version.valueCounts());
         const oldHeaders = oldVersions.map((version) => TableAligner.headerSignature(version));
         const newHeaders = newVersions.map((version) => TableAligner.headerSignature(version));
-        // in a section, two headed tables are the same table only under the same header
+        const keyed = (oldIndex: number, newIndex: number): boolean => oldVersions[oldIndex].hasRowKeys && newVersions[newIndex].hasRowKeys;
+        // generated tables are the same table only under the same header
         const headersApart = (oldIndex: number, newIndex: number): boolean =>
-            oldTables[oldIndex].inSection &&
-            newTables[newIndex].inSection &&
+            keyed(oldIndex, newIndex) &&
             oldHeaders[oldIndex] !== null &&
             newHeaders[newIndex] !== null &&
             oldHeaders[oldIndex] !== newHeaders[newIndex];
-        // in a text, merged cells are layout: other merged cells make another table
+        // outside generated tables, merged cells are layout: other merged cells make another table
         const spansApart = (oldIndex: number, newIndex: number): boolean =>
-            !oldTables[oldIndex].inSection && !newTables[newIndex].inSection && !oldVersions[oldIndex].hasSameSpanLayoutAs(newVersions[newIndex]);
+            !keyed(oldIndex, newIndex) && !oldVersions[oldIndex].hasSameSpanLayoutAs(newVersions[newIndex]);
 
         return new SequenceAligner({
             oldCount: oldTables.length,
@@ -72,10 +72,9 @@ export class TableAligner {
                     if (headersApart(oldIndex, newIndex) || spansApart(oldIndex, newIndex)) {
                         return false;
                     }
-                    const inSection = oldTables[oldIndex].inSection && newTables[newIndex].inSection;
                     return (
                         distinctSharedShare(oldValueCounts[oldIndex], newValueCounts[newIndex]) >= 0.5 ||
-                        (inSection && oldVersions[oldIndex].columnCount === newVersions[newIndex].columnCount)
+                        (keyed(oldIndex, newIndex) && oldVersions[oldIndex].columnCount === newVersions[newIndex].columnCount)
                     );
                 },
                 isOldBlank: (oldIndex) => countsSize(oldValueCounts[oldIndex]) === 0,

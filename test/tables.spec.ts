@@ -1,7 +1,7 @@
 import { expect } from "chai";
-import diff from "../../src/htmldiff";
+import diff from "../src/htmldiff";
 
-describe("Structural table redlining", () => {
+describe("tables", () => {
 
     describe("rows", () => {
         it("marks whole added row when another cell is edited", () => {
@@ -123,24 +123,19 @@ describe("Structural table redlining", () => {
 
         it("marks fully changed row as deleted and added", () => {
             const res = diff(
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td><td>a</td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td><td>b</td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td><td>a</td></tr>' +
+                '<tr><td data-htmldiff-id="TC-2"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td><td>b</td></tr></tbody>' +
                 '</table></div>',
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td><td>a</td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-9">TC-9</smart-link></td><td>b</td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td><td>a</td></tr>' +
+                '<tr><td data-htmldiff-id="TC-9"><smart-link data-htmldiff-id="TC-9">TC-9</smart-link></td><td>b</td></tr></tbody>' +
                 '</table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td><td>a</td></tr>' +
-                '<tr class="table-row-deleted"><td><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td><td>b</td></tr>' +
-                '<tr class="table-row-added"><td><smart-link data-htmldiff-id="TC-9">TC-9</smart-link></td><td>b</td></tr></tbody>' +
-                '</table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td><td>a</td></tr><tr class="table-row-deleted"><td data-htmldiff-id="TC-2"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td><td>b</td></tr><tr class="table-row-added"><td data-htmldiff-id="TC-9"><smart-link data-htmldiff-id="TC-9">TC-9</smart-link></td><td>b</td></tr></tbody></table></div>');
         });
     });
 
-    describe("rows in a document section", () => {
+    describe("rows of generated tables", () => {
         it("keeps rows of different items apart", () => {
             const res = diff('<div class="rich-text-editor"><ul class="tox-checklist"><li><span data-htmldiff-id="checkbox|false" data-htmldiff-inner-diff="true" class="htmldiff__checklist-content">task</span></li></ul></div>','<div class="rich-text-editor"><ul class="tox-checklist"><li class="tox-checklist--checked"><span data-htmldiff-id="checkbox|true" data-htmldiff-inner-diff="true" class="htmldiff__checklist-content tox-checklist--checked">task</span></li></ul></div>');
             expect(res).to.equal(
@@ -149,57 +144,47 @@ describe("Structural table redlining", () => {
                 '<ins data-operation-index="1"><span data-htmldiff-id="checkbox|true" data-htmldiff-inner-diff="true" class="htmldiff__checklist-content tox-checklist--checked">task</span></ins></li></ul></div>');
         });
 
-        it("spans the item over its old and new rows when none of them match", () => {
-            const res = diff('<div data-shadow-boundary=""><table><tbody><tr><td><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td colspan="3">not covered</td></tr></tbody></table></div>',
-                '<div data-shadow-boundary=""><table><tbody><tr><td rowspan="2"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td><td><smart-link data-htmldiff-id="XTC-22">XTC-22</smart-link></td><td>other</td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td><td><smart-link data-htmldiff-id="XTC-23">XTC-23</smart-link></td><td>other</td></tr></tbody></table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody><tr><td rowspan="3"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td class="table-cell-deleted" colspan="3">not covered</td></tr><tr><td class="table-cell-added"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td><td class="table-cell-added"><smart-link data-htmldiff-id="XTC-22">XTC-22</smart-link></td><td class="table-cell-added">other</td></tr><tr><td class="table-cell-added"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td><td class="table-cell-added"><smart-link data-htmldiff-id="XTC-23">XTC-23</smart-link></td><td class="table-cell-added">other</td></tr></tbody></table></div>');
+        it("replaces the rows of an item when none of them keep their keys", () => {
+            const res = diff('<div><table><tbody><tr><td data-htmldiff-id="SPEC-1"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td colspan="3">not covered</td></tr></tbody></table></div>',
+                '<div><table><tbody><tr><td data-htmldiff-id="SPEC-1" rowspan="2"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td><td data-htmldiff-id="XTC-22"><smart-link data-htmldiff-id="XTC-22">XTC-22</smart-link></td><td>other</td></tr>' +
+                '<tr><td data-htmldiff-id="TC-2"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td><td data-htmldiff-id="XTC-23"><smart-link data-htmldiff-id="XTC-23">XTC-23</smart-link></td><td>other</td></tr></tbody></table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr class="table-row-deleted"><td data-htmldiff-id="SPEC-1"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td colspan="3">not covered</td></tr><tr class="table-row-added"><td data-htmldiff-id="SPEC-1" rowspan="2"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td><td data-htmldiff-id="XTC-22"><smart-link data-htmldiff-id="XTC-22">XTC-22</smart-link></td><td>other</td></tr><tr class="table-row-added"><td data-htmldiff-id="TC-2"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td><td data-htmldiff-id="XTC-23"><smart-link data-htmldiff-id="XTC-23">XTC-23</smart-link></td><td>other</td></tr></tbody></table></div>');
         });
 
-        it("spans the item over its old and new row when its only row is replaced", () => {
-            const res = diff('<div data-shadow-boundary=""><table><tbody><tr><td><smart-link data-htmldiff-id="SPEC-7">SPEC-7</smart-link></td><td>Missing trace to TC</td></tr></tbody></table></div>',
-                '<div data-shadow-boundary=""><table><tbody><tr><td><smart-link data-htmldiff-id="SPEC-7">SPEC-7</smart-link></td><td><smart-link data-htmldiff-id="TC-5">TC-5</smart-link></td></tr></tbody></table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody><tr><td rowspan="2"><smart-link data-htmldiff-id="SPEC-7">SPEC-7</smart-link></td><td class="table-cell-deleted">Missing trace to TC</td></tr><tr><td class="table-cell-added"><smart-link data-htmldiff-id="TC-5">TC-5</smart-link></td></tr></tbody></table></div>');
+        it("replaces the missing-trace row when the item gains its first trace", () => {
+            const res = diff('<div><table><tbody><tr><td data-htmldiff-id="SPEC-7"><smart-link data-htmldiff-id="SPEC-7">SPEC-7</smart-link></td><td>Missing trace to TC</td></tr></tbody></table></div>',
+                '<div><table><tbody><tr><td data-htmldiff-id="SPEC-7"><smart-link data-htmldiff-id="SPEC-7">SPEC-7</smart-link></td><td data-htmldiff-id="TC-5"><smart-link data-htmldiff-id="TC-5">TC-5</smart-link></td></tr></tbody></table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr class="table-row-deleted"><td data-htmldiff-id="SPEC-7"><smart-link data-htmldiff-id="SPEC-7">SPEC-7</smart-link></td><td>Missing trace to TC</td></tr><tr class="table-row-added"><td data-htmldiff-id="SPEC-7"><smart-link data-htmldiff-id="SPEC-7">SPEC-7</smart-link></td><td data-htmldiff-id="TC-5"><smart-link data-htmldiff-id="TC-5">TC-5</smart-link></td></tr></tbody></table></div>');
         });
 
         it("diffs the links cell when a linked item is added", () => {
             const res = diff(
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td><smart-link data-htmldiff-id="REQ-1">REQ-1</smart-link></td><td><smart-link data-htmldiff-id="REQ-2">REQ-2</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="REQ-1"><smart-link data-htmldiff-id="REQ-1">REQ-1</smart-link></td><td><smart-link data-htmldiff-id="REQ-2">REQ-2</smart-link></td></tr></tbody>' +
                 '</table></div>',
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td><smart-link data-htmldiff-id="REQ-1">REQ-1</smart-link></td><td><smart-link data-htmldiff-id="REQ-2">REQ-2</smart-link> <smart-link data-htmldiff-id="REQ-3">REQ-3</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="REQ-1"><smart-link data-htmldiff-id="REQ-1">REQ-1</smart-link></td><td><smart-link data-htmldiff-id="REQ-2">REQ-2</smart-link> <smart-link data-htmldiff-id="REQ-3">REQ-3</smart-link></td></tr></tbody>' +
                 '</table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody><tr><td><smart-link data-htmldiff-id="REQ-1">REQ-1</smart-link></td><td><smart-link data-htmldiff-id="REQ-2">REQ-2</smart-link><ins data-operation-index="1"><smart-link data-htmldiff-id="REQ-3">REQ-3</smart-link></ins></td></tr></tbody></table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr><td data-htmldiff-id="REQ-1"><smart-link data-htmldiff-id="REQ-1">REQ-1</smart-link></td><td><smart-link data-htmldiff-id="REQ-2">REQ-2</smart-link><ins data-operation-index="1"><smart-link data-htmldiff-id="REQ-3">REQ-3</smart-link></ins></td></tr></tbody></table></div>');
         });
 
         it("diffs the row of an item whose value changed and whose controls gained a ref", () => {
-            const res = diff('<div data-shadow-boundary=""><table><tbody><tr><td><smart-link data-htmldiff-id="RISK-9">RISK-9</smart-link> Grab Bar</td><td>Inadequate grip</td><td>2</td><td><smart-link data-htmldiff-id="SPEC-18">SPEC-18</smart-link> IFU</td></tr></tbody></table></div>',
-                '<div data-shadow-boundary=""><table><tbody><tr><td><smart-link data-htmldiff-id="RISK-9">RISK-9</smart-link> Grab Bar</td><td>Inadequate grip</td><td>3</td><td><smart-link data-htmldiff-id="SPEC-8">SPEC-8</smart-link> RF <smart-link data-htmldiff-id="SPEC-18">SPEC-18</smart-link> IFU</td></tr></tbody></table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody><tr><td><smart-link data-htmldiff-id="RISK-9">RISK-9</smart-link> Grab Bar</td><td>Inadequate grip</td><td><del data-operation-index="0">2</del><ins data-operation-index="0">3</ins></td><td><ins data-operation-index="0"><smart-link data-htmldiff-id="SPEC-8">SPEC-8</smart-link></ins><ins data-operation-index="0"> RF </ins><smart-link data-htmldiff-id="SPEC-18">SPEC-18</smart-link> IFU</td></tr></tbody></table></div>');
+            const res = diff('<div><table><tbody><tr><td data-htmldiff-id="RISK-9"><smart-link data-htmldiff-id="RISK-9">RISK-9</smart-link> Grab Bar</td><td>Inadequate grip</td><td>2</td><td><smart-link data-htmldiff-id="SPEC-18">SPEC-18</smart-link> IFU</td></tr></tbody></table></div>',
+                '<div><table><tbody><tr><td data-htmldiff-id="RISK-9"><smart-link data-htmldiff-id="RISK-9">RISK-9</smart-link> Grab Bar</td><td>Inadequate grip</td><td>3</td><td><smart-link data-htmldiff-id="SPEC-8">SPEC-8</smart-link> RF <smart-link data-htmldiff-id="SPEC-18">SPEC-18</smart-link> IFU</td></tr></tbody></table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr><td data-htmldiff-id="RISK-9"><smart-link data-htmldiff-id="RISK-9">RISK-9</smart-link> Grab Bar</td><td>Inadequate grip</td><td><del data-operation-index="0">2</del><ins data-operation-index="0">3</ins></td><td><ins data-operation-index="0"><smart-link data-htmldiff-id="SPEC-8">SPEC-8</smart-link></ins><ins data-operation-index="0"> RF </ins><smart-link data-htmldiff-id="SPEC-18">SPEC-18</smart-link> IFU</td></tr></tbody></table></div>');
         });
 
-        it("keeps the item cell and replaces the row when a ref in a cell was swapped", () => {
-            const res = diff('<div data-shadow-boundary=""><table><tbody><tr><td><smart-link data-htmldiff-id="RISK-9">RISK-9</smart-link> Grab Bar</td><td>Inadequate grip</td><td><smart-link data-htmldiff-id="SPEC-18">SPEC-18</smart-link> IFU</td></tr></tbody></table></div>',
-                '<div data-shadow-boundary=""><table><tbody><tr><td><smart-link data-htmldiff-id="RISK-9">RISK-9</smart-link> Grab Bar</td><td>Inadequate grip</td><td><smart-link data-htmldiff-id="SPEC-8">SPEC-8</smart-link> RF</td></tr></tbody></table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody><tr><td rowspan="2"><smart-link data-htmldiff-id="RISK-9">RISK-9</smart-link> Grab Bar</td><td class="table-cell-deleted">Inadequate grip</td><td class="table-cell-deleted"><smart-link data-htmldiff-id="SPEC-18">SPEC-18</smart-link> IFU</td></tr><tr><td class="table-cell-added">Inadequate grip</td><td class="table-cell-added"><smart-link data-htmldiff-id="SPEC-8">SPEC-8</smart-link> RF</td></tr></tbody></table></div>');
-        });
 
         // a producer may give the cells naming a row their own identity: then those alone pair the rows
         describe("keyed rows", () => {
-            const section = (rows: string): string => `<div data-shadow-boundary=""><table><tbody>${rows}</tbody></table></div>`;
+            const section = (rows: string): string => `<div><table><tbody>${rows}</tbody></table></div>`;
 
             it("diffs the cells of an executed test when its keys are unchanged", () => {
                 const key = (itemRef: string): string => `<td data-htmldiff-id="${itemRef}"><smart-link data-htmldiff-id="${itemRef}">${itemRef}</smart-link></td>`;
                 const row = (cells: string[]): string => `<tr>${key("TR-3")}${key("TC-1")}${key("XTC-11")}${cells.map((cell) => `<td>${cell}</td>`).join("")}</tr>`;
                 const res = diff(section(row(["", "", "0s", "pending"])), section(row(["2026/10/05", "jdoe", "4s", "passed"])));
                 expect(res).to.equal(
-                    '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody>' +
+                    '<div><table data-htmldiff-id="redline-table-0"><tbody>' +
                         `<tr>${key("TR-3")}${key("TC-1")}${key("XTC-11")}` +
                         '<td><ins data-operation-index="0">2026/10/05</ins></td>' +
                         '<td><ins data-operation-index="0">jdoe</ins></td>' +
@@ -215,7 +200,7 @@ describe("Structural table redlining", () => {
                     `<td><smart-link data-htmldiff-id="${control}">${control}</smart-link></td></tr>`;
                 const res = diff(section(row("SPEC-2")), section(row("SPEC-7")));
                 expect(res).to.equal(
-                    '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody>' +
+                    '<div><table data-htmldiff-id="redline-table-0"><tbody>' +
                         '<tr><td data-htmldiff-id="RISK-1"><smart-link data-htmldiff-id="RISK-1">RISK-1</smart-link> Fire</td><td>Fire</td>' +
                         '<td><del data-operation-index="0"><smart-link data-htmldiff-id="SPEC-2">SPEC-2</smart-link></del><ins data-operation-index="0"><smart-link data-htmldiff-id="SPEC-7">SPEC-7</smart-link></ins></td></tr>' +
                         "</tbody></table></div>",
@@ -225,230 +210,185 @@ describe("Structural table redlining", () => {
             it("keeps a keyed trace row apart when its trace was swapped", () => {
                 const row = (trace: string): string => `<tr><td data-htmldiff-id="SPEC-6">SPEC-6</td><td data-htmldiff-id="${trace}">${trace} text</td></tr>`;
                 const res = diff(section(row("TC-3")), section(row("TC-4")));
-                expect(res).to.equal(
-                    '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody>' +
-                        '<tr><td data-htmldiff-id="SPEC-6" rowspan="2">SPEC-6</td><td data-htmldiff-id="TC-3" class="table-cell-deleted">TC-3 text</td></tr>' +
-                        '<tr><td data-htmldiff-id="TC-4" class="table-cell-added">TC-4 text</td></tr>' +
-                        "</tbody></table></div>",
-                );
+                expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr class="table-row-deleted"><td data-htmldiff-id="SPEC-6">SPEC-6</td><td data-htmldiff-id="TC-3">TC-3 text</td></tr><tr class="table-row-added"><td data-htmldiff-id="SPEC-6">SPEC-6</td><td data-htmldiff-id="TC-4">TC-4 text</td></tr></tbody></table></div>');
             });
         });
 
         it("keeps executions of different test cases apart", () => {
-            const res = diff('<div data-shadow-boundary=""><table><tbody><tr><td rowspan="2"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td><td><smart-link data-htmldiff-id="TR-4">TR-4</smart-link></td><td>other</td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td><td><smart-link data-htmldiff-id="TR-4">TR-4</smart-link></td><td>other</td></tr></tbody></table></div>',
-                '<div data-shadow-boundary=""><table><tbody><tr><td rowspan="2"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td><td><smart-link data-htmldiff-id="TR-4">TR-4</smart-link></td><td>other</td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-9">TC-9</smart-link></td><td><smart-link data-htmldiff-id="TR-4">TR-4</smart-link></td><td>other</td></tr></tbody></table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody><tr><td rowspan="3"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td><td><smart-link data-htmldiff-id="TR-4">TR-4</smart-link></td><td>other</td></tr><tr><td class="table-cell-deleted"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td><td class="table-cell-deleted"><smart-link data-htmldiff-id="TR-4">TR-4</smart-link></td><td class="table-cell-deleted">other</td></tr><tr><td class="table-cell-added"><smart-link data-htmldiff-id="TC-9">TC-9</smart-link></td><td class="table-cell-added"><smart-link data-htmldiff-id="TR-4">TR-4</smart-link></td><td class="table-cell-added">other</td></tr></tbody></table></div>');
+            const res = diff('<div><table><tbody><tr><td data-htmldiff-id="SPEC-1" rowspan="2"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td><td data-htmldiff-id="TR-4"><smart-link data-htmldiff-id="TR-4">TR-4</smart-link></td><td>other</td></tr>' +
+                '<tr><td data-htmldiff-id="TC-2"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td><td data-htmldiff-id="TR-4"><smart-link data-htmldiff-id="TR-4">TR-4</smart-link></td><td>other</td></tr></tbody></table></div>',
+                '<div><table><tbody><tr><td data-htmldiff-id="SPEC-1" rowspan="2"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td><td data-htmldiff-id="TR-4"><smart-link data-htmldiff-id="TR-4">TR-4</smart-link></td><td>other</td></tr>' +
+                '<tr><td data-htmldiff-id="TC-9"><smart-link data-htmldiff-id="TC-9">TC-9</smart-link></td><td data-htmldiff-id="TR-4"><smart-link data-htmldiff-id="TR-4">TR-4</smart-link></td><td>other</td></tr></tbody></table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr><td data-htmldiff-id="SPEC-1" rowspan="3"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td><td data-htmldiff-id="TR-4"><smart-link data-htmldiff-id="TR-4">TR-4</smart-link></td><td>other</td></tr><tr><td data-htmldiff-id="TC-2" class="table-cell-deleted"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td><td data-htmldiff-id="TR-4" class="table-cell-deleted"><smart-link data-htmldiff-id="TR-4">TR-4</smart-link></td><td class="table-cell-deleted">other</td></tr><tr><td data-htmldiff-id="TC-9" class="table-cell-added"><smart-link data-htmldiff-id="TC-9">TC-9</smart-link></td><td data-htmldiff-id="TR-4" class="table-cell-added"><smart-link data-htmldiff-id="TR-4">TR-4</smart-link></td><td class="table-cell-added">other</td></tr></tbody></table></div>');
         });
 
-        it("empties the trace cell of an item as a cell edit", () => {
-            const res = diff('<div data-shadow-boundary=""><table><tbody><tr><td rowspan="2"><smart-link data-htmldiff-id="SPEC-6">SPEC-6</smart-link></td><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link> Mounting</td></tr><tr><td><smart-link data-htmldiff-id="TC-4">TC-4</smart-link> App</td></tr></tbody></table></div>',
-                '<div data-shadow-boundary=""><table><tbody><tr><td><smart-link data-htmldiff-id="SPEC-6">SPEC-6</smart-link></td><td></td></tr></tbody></table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody><tr><td rowspan="2"><smart-link data-htmldiff-id="SPEC-6">SPEC-6</smart-link></td><td><del data-operation-index="0"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></del><del data-operation-index="0"> Mounting</del></td></tr><tr><td class="table-cell-deleted"><smart-link data-htmldiff-id="TC-4">TC-4</smart-link> App</td></tr></tbody></table></div>');
+        it("replaces the rows of an item that lost every trace", () => {
+            const res = diff('<div><table><tbody><tr><td data-htmldiff-id="SPEC-6" rowspan="2"><smart-link data-htmldiff-id="SPEC-6">SPEC-6</smart-link></td><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link> Mounting</td></tr><tr><td data-htmldiff-id="TC-4"><smart-link data-htmldiff-id="TC-4">TC-4</smart-link> App</td></tr></tbody></table></div>',
+                '<div><table><tbody><tr><td data-htmldiff-id="SPEC-6"><smart-link data-htmldiff-id="SPEC-6">SPEC-6</smart-link></td><td></td></tr></tbody></table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr class="table-row-deleted"><td data-htmldiff-id="SPEC-6" rowspan="2"><smart-link data-htmldiff-id="SPEC-6">SPEC-6</smart-link></td><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link> Mounting</td></tr><tr class="table-row-deleted"><td data-htmldiff-id="TC-4"><smart-link data-htmldiff-id="TC-4">TC-4</smart-link> App</td></tr><tr class="table-row-added"><td data-htmldiff-id="SPEC-6"><smart-link data-htmldiff-id="SPEC-6">SPEC-6</smart-link></td><td></td></tr></tbody></table></div>');
         });
 
-        it("fills the empty trace cell of an item as a cell edit", () => {
-            const res = diff('<div data-shadow-boundary=""><table><tbody><tr><td><smart-link data-htmldiff-id="SPEC-6">SPEC-6</smart-link></td><td></td></tr></tbody></table></div>',
-                '<div data-shadow-boundary=""><table><tbody><tr><td><smart-link data-htmldiff-id="SPEC-6">SPEC-6</smart-link></td><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link> Mounting</td></tr></tbody></table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody><tr><td><smart-link data-htmldiff-id="SPEC-6">SPEC-6</smart-link></td><td><ins data-operation-index="0"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></ins><ins data-operation-index="0"> Mounting</ins></td></tr></tbody></table></div>');
+        it("replaces the row of an item that gained a trace", () => {
+            const res = diff('<div><table><tbody><tr><td data-htmldiff-id="SPEC-6"><smart-link data-htmldiff-id="SPEC-6">SPEC-6</smart-link></td><td></td></tr></tbody></table></div>',
+                '<div><table><tbody><tr><td data-htmldiff-id="SPEC-6"><smart-link data-htmldiff-id="SPEC-6">SPEC-6</smart-link></td><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link> Mounting</td></tr></tbody></table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr class="table-row-deleted"><td data-htmldiff-id="SPEC-6"><smart-link data-htmldiff-id="SPEC-6">SPEC-6</smart-link></td><td></td></tr><tr class="table-row-added"><td data-htmldiff-id="SPEC-6"><smart-link data-htmldiff-id="SPEC-6">SPEC-6</smart-link></td><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link> Mounting</td></tr></tbody></table></div>');
         });
 
         it("splits row when its item changes and links stay", () => {
             const res = diff(
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td><smart-link data-htmldiff-id="SPEC-3">SPEC-3</smart-link></td><td><smart-link data-htmldiff-id="REQ-1">REQ-1</smart-link> <smart-link data-htmldiff-id="REQ-2">REQ-2</smart-link> <smart-link data-htmldiff-id="REQ-4">REQ-4</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="SPEC-3"><smart-link data-htmldiff-id="SPEC-3">SPEC-3</smart-link></td><td><smart-link data-htmldiff-id="REQ-1">REQ-1</smart-link> <smart-link data-htmldiff-id="REQ-2">REQ-2</smart-link> <smart-link data-htmldiff-id="REQ-4">REQ-4</smart-link></td></tr></tbody>' +
                 '</table></div>',
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td><smart-link data-htmldiff-id="SPEC-2">SPEC-2</smart-link></td><td><smart-link data-htmldiff-id="REQ-1">REQ-1</smart-link> <smart-link data-htmldiff-id="REQ-2">REQ-2</smart-link> <smart-link data-htmldiff-id="REQ-4">REQ-4</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="SPEC-2"><smart-link data-htmldiff-id="SPEC-2">SPEC-2</smart-link></td><td><smart-link data-htmldiff-id="REQ-1">REQ-1</smart-link> <smart-link data-htmldiff-id="REQ-2">REQ-2</smart-link> <smart-link data-htmldiff-id="REQ-4">REQ-4</smart-link></td></tr></tbody>' +
                 '</table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody>' +
-                '<tr class="table-row-deleted"><td><smart-link data-htmldiff-id="SPEC-3">SPEC-3</smart-link></td><td><smart-link data-htmldiff-id="REQ-1">REQ-1</smart-link> <smart-link data-htmldiff-id="REQ-2">REQ-2</smart-link> <smart-link data-htmldiff-id="REQ-4">REQ-4</smart-link></td></tr>' +
-                '<tr class="table-row-added"><td><smart-link data-htmldiff-id="SPEC-2">SPEC-2</smart-link></td><td><smart-link data-htmldiff-id="REQ-1">REQ-1</smart-link> <smart-link data-htmldiff-id="REQ-2">REQ-2</smart-link> <smart-link data-htmldiff-id="REQ-4">REQ-4</smart-link></td></tr></tbody>' +
-                '</table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr class="table-row-deleted"><td data-htmldiff-id="SPEC-3"><smart-link data-htmldiff-id="SPEC-3">SPEC-3</smart-link></td><td><smart-link data-htmldiff-id="REQ-1">REQ-1</smart-link> <smart-link data-htmldiff-id="REQ-2">REQ-2</smart-link> <smart-link data-htmldiff-id="REQ-4">REQ-4</smart-link></td></tr><tr class="table-row-added"><td data-htmldiff-id="SPEC-2"><smart-link data-htmldiff-id="SPEC-2">SPEC-2</smart-link></td><td><smart-link data-htmldiff-id="REQ-1">REQ-1</smart-link> <smart-link data-htmldiff-id="REQ-2">REQ-2</smart-link> <smart-link data-htmldiff-id="REQ-4">REQ-4</smart-link></td></tr></tbody></table></div>');
         });
 
-        it("replaces the row of an item whose content all changed", () => {
+        it("diffs the row of an item whose content all changed", () => {
             const res = diff(
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td><td>a</td><td>x</td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td><td>a</td><td>x</td></tr></tbody>' +
                 '</table></div>',
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td><td>c</td><td>z</td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td><td>b</td><td>y</td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td><td>c</td><td>z</td></tr>' +
+                '<tr><td data-htmldiff-id="TC-2"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td><td>b</td><td>y</td></tr></tbody>' +
                 '</table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody><tr><td rowspan="2"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td><td class="table-cell-deleted">a</td><td class="table-cell-deleted">x</td></tr><tr><td class="table-cell-added">c</td><td class="table-cell-added">z</td></tr><tr class="table-row-added"><td><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td><td>b</td><td>y</td></tr></tbody></table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td><td><del data-operation-index="0">a</del><ins data-operation-index="0">c</ins></td><td><del data-operation-index="0">x</del><ins data-operation-index="0">z</ins></td></tr><tr class="table-row-added"><td data-htmldiff-id="TC-2"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td><td>b</td><td>y</td></tr></tbody></table></div>');
         });
 
         it("keeps same shaped groups of different items apart", () => {
             const res = diff(
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td rowspan="2"><smart-link data-htmldiff-id="UC-41">UC-41</smart-link></td><td><smart-link data-htmldiff-id="VAL-3">VAL-3</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="VAL-4">VAL-4</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="UC-41" rowspan="2"><smart-link data-htmldiff-id="UC-41">UC-41</smart-link></td><td data-htmldiff-id="VAL-3"><smart-link data-htmldiff-id="VAL-3">VAL-3</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="VAL-4"><smart-link data-htmldiff-id="VAL-4">VAL-4</smart-link></td></tr></tbody>' +
                 '</table></div>',
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td rowspan="2"><smart-link data-htmldiff-id="PRODREQ-193">PRODREQ-193</smart-link></td><td><smart-link data-htmldiff-id="COMP-1">COMP-1</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="COMP-2">COMP-2</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="PRODREQ-193" rowspan="2"><smart-link data-htmldiff-id="PRODREQ-193">PRODREQ-193</smart-link></td><td data-htmldiff-id="COMP-1"><smart-link data-htmldiff-id="COMP-1">COMP-1</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="COMP-2"><smart-link data-htmldiff-id="COMP-2">COMP-2</smart-link></td></tr></tbody>' +
                 '</table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody>' +
-                '<tr class="table-row-deleted"><td rowspan="2"><smart-link data-htmldiff-id="UC-41">UC-41</smart-link></td><td><smart-link data-htmldiff-id="VAL-3">VAL-3</smart-link></td></tr>' +
-                '<tr class="table-row-deleted"><td><smart-link data-htmldiff-id="VAL-4">VAL-4</smart-link></td></tr>' +
-                '<tr class="table-row-added"><td rowspan="2"><smart-link data-htmldiff-id="PRODREQ-193">PRODREQ-193</smart-link></td><td><smart-link data-htmldiff-id="COMP-1">COMP-1</smart-link></td></tr>' +
-                '<tr class="table-row-added"><td><smart-link data-htmldiff-id="COMP-2">COMP-2</smart-link></td></tr></tbody>' +
-                '</table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr class="table-row-deleted"><td data-htmldiff-id="UC-41" rowspan="2"><smart-link data-htmldiff-id="UC-41">UC-41</smart-link></td><td data-htmldiff-id="VAL-3"><smart-link data-htmldiff-id="VAL-3">VAL-3</smart-link></td></tr><tr class="table-row-deleted"><td data-htmldiff-id="VAL-4"><smart-link data-htmldiff-id="VAL-4">VAL-4</smart-link></td></tr><tr class="table-row-added"><td data-htmldiff-id="PRODREQ-193" rowspan="2"><smart-link data-htmldiff-id="PRODREQ-193">PRODREQ-193</smart-link></td><td data-htmldiff-id="COMP-1"><smart-link data-htmldiff-id="COMP-1">COMP-1</smart-link></td></tr><tr class="table-row-added"><td data-htmldiff-id="COMP-2"><smart-link data-htmldiff-id="COMP-2">COMP-2</smart-link></td></tr></tbody></table></div>');
         });
 
         it("marks a gained trace as an added cell under its source and deletes the other source whole", () => {
             const res = diff(
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td><smart-link data-htmldiff-id="UC-30">UC-30</smart-link></td><td><smart-link data-htmldiff-id="UREQ-114">UREQ-114</smart-link></td></tr>' +
-                '<tr><td rowspan="2"><smart-link data-htmldiff-id="UC-39">UC-39</smart-link></td><td><smart-link data-htmldiff-id="UREQ-116">UREQ-116</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="UREQ-312">UREQ-312</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="UC-30"><smart-link data-htmldiff-id="UC-30">UC-30</smart-link></td><td data-htmldiff-id="UREQ-114"><smart-link data-htmldiff-id="UREQ-114">UREQ-114</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="UC-39" rowspan="2"><smart-link data-htmldiff-id="UC-39">UC-39</smart-link></td><td data-htmldiff-id="UREQ-116"><smart-link data-htmldiff-id="UREQ-116">UREQ-116</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="UREQ-312"><smart-link data-htmldiff-id="UREQ-312">UREQ-312</smart-link></td></tr></tbody>' +
                 '</table></div>',
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td rowspan="2"><smart-link data-htmldiff-id="UC-30">UC-30</smart-link></td><td><smart-link data-htmldiff-id="UREQ-114">UREQ-114</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="UREQ-312">UREQ-312</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="UC-30" rowspan="2"><smart-link data-htmldiff-id="UC-30">UC-30</smart-link></td><td data-htmldiff-id="UREQ-114"><smart-link data-htmldiff-id="UREQ-114">UREQ-114</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="UREQ-312"><smart-link data-htmldiff-id="UREQ-312">UREQ-312</smart-link></td></tr></tbody>' +
                 '</table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody><tr><td rowspan="2"><smart-link data-htmldiff-id="UC-30">UC-30</smart-link></td><td><smart-link data-htmldiff-id="UREQ-114">UREQ-114</smart-link></td></tr><tr><td class="table-cell-added"><smart-link data-htmldiff-id="UREQ-312">UREQ-312</smart-link></td></tr><tr class="table-row-deleted"><td rowspan="2"><smart-link data-htmldiff-id="UC-39">UC-39</smart-link></td><td><smart-link data-htmldiff-id="UREQ-116">UREQ-116</smart-link></td></tr><tr class="table-row-deleted"><td><smart-link data-htmldiff-id="UREQ-312">UREQ-312</smart-link></td></tr></tbody></table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr><td data-htmldiff-id="UC-30" rowspan="2"><smart-link data-htmldiff-id="UC-30">UC-30</smart-link></td><td data-htmldiff-id="UREQ-114"><smart-link data-htmldiff-id="UREQ-114">UREQ-114</smart-link></td></tr><tr><td data-htmldiff-id="UREQ-312" class="table-cell-added"><smart-link data-htmldiff-id="UREQ-312">UREQ-312</smart-link></td></tr><tr class="table-row-deleted"><td data-htmldiff-id="UC-39" rowspan="2"><smart-link data-htmldiff-id="UC-39">UC-39</smart-link></td><td data-htmldiff-id="UREQ-116"><smart-link data-htmldiff-id="UREQ-116">UREQ-116</smart-link></td></tr><tr class="table-row-deleted"><td data-htmldiff-id="UREQ-312"><smart-link data-htmldiff-id="UREQ-312">UREQ-312</smart-link></td></tr></tbody></table></div>');
         });
 
         it("marks a lost trace as a deleted cell under the kept rows of its group", () => {
             const res = diff(
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td rowspan="3"><smart-link data-htmldiff-id="SPEC-15">SPEC-15</smart-link></td><td><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-4">TC-4</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="SPEC-15" rowspan="3"><smart-link data-htmldiff-id="SPEC-15">SPEC-15</smart-link></td><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="TC-2"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="TC-4"><smart-link data-htmldiff-id="TC-4">TC-4</smart-link></td></tr></tbody>' +
                 '</table></div>',
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td rowspan="2"><smart-link data-htmldiff-id="SPEC-15">SPEC-15</smart-link></td><td><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="SPEC-15" rowspan="2"><smart-link data-htmldiff-id="SPEC-15">SPEC-15</smart-link></td><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="TC-2"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr></tbody>' +
                 '</table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody><tr><td rowspan="3"><smart-link data-htmldiff-id="SPEC-15">SPEC-15</smart-link></td><td><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr><tr><td><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr><tr><td class="table-cell-deleted"><smart-link data-htmldiff-id="TC-4">TC-4</smart-link></td></tr></tbody></table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr><td data-htmldiff-id="SPEC-15" rowspan="3"><smart-link data-htmldiff-id="SPEC-15">SPEC-15</smart-link></td><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr><tr><td data-htmldiff-id="TC-2"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr><tr><td data-htmldiff-id="TC-4" class="table-cell-deleted"><smart-link data-htmldiff-id="TC-4">TC-4</smart-link></td></tr></tbody></table></div>');
         });
 
         it("moves a lost trace under the kept rows of its group", () => {
             const res = diff(
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td rowspan="3"><smart-link data-htmldiff-id="SPEC-15">SPEC-15</smart-link></td><td><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="SPEC-15" rowspan="3"><smart-link data-htmldiff-id="SPEC-15">SPEC-15</smart-link></td><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="TC-2"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr></tbody>' +
                 '</table></div>',
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td rowspan="2"><smart-link data-htmldiff-id="SPEC-15">SPEC-15</smart-link></td><td><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="SPEC-15" rowspan="2"><smart-link data-htmldiff-id="SPEC-15">SPEC-15</smart-link></td><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr></tbody>' +
                 '</table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody><tr><td rowspan="3"><smart-link data-htmldiff-id="SPEC-15">SPEC-15</smart-link></td><td><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr><tr><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr><tr><td class="table-cell-deleted"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr></tbody></table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr><td data-htmldiff-id="SPEC-15" rowspan="3"><smart-link data-htmldiff-id="SPEC-15">SPEC-15</smart-link></td><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr><tr><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr><tr><td data-htmldiff-id="TC-2" class="table-cell-deleted"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr></tbody></table></div>');
         });
 
         it("moves the merged cell onto the first kept row when the first row of its group is deleted", () => {
             const res = diff(
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td rowspan="3"><smart-link data-htmldiff-id="SPEC-3">SPEC-3</smart-link></td><td><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-5">TC-5</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="SPEC-3" rowspan="3"><smart-link data-htmldiff-id="SPEC-3">SPEC-3</smart-link></td><td data-htmldiff-id="TC-2"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="TC-5"><smart-link data-htmldiff-id="TC-5">TC-5</smart-link></td></tr></tbody>' +
                 '</table></div>',
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td rowspan="2"><smart-link data-htmldiff-id="SPEC-3">SPEC-3</smart-link></td><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="TC-5">TC-5</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="SPEC-3" rowspan="2"><smart-link data-htmldiff-id="SPEC-3">SPEC-3</smart-link></td><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="TC-5"><smart-link data-htmldiff-id="TC-5">TC-5</smart-link></td></tr></tbody>' +
                 '</table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody><tr><td rowspan="3"><smart-link data-htmldiff-id="SPEC-3">SPEC-3</smart-link></td><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr><tr><td><smart-link data-htmldiff-id="TC-5">TC-5</smart-link></td></tr><tr><td class="table-cell-deleted"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr></tbody></table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr><td data-htmldiff-id="SPEC-3" rowspan="3"><smart-link data-htmldiff-id="SPEC-3">SPEC-3</smart-link></td><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr><tr><td data-htmldiff-id="TC-5"><smart-link data-htmldiff-id="TC-5">TC-5</smart-link></td></tr><tr><td data-htmldiff-id="TC-2" class="table-cell-deleted"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr></tbody></table></div>');
         });
 
         it("spans the item over its lost traces when the group shrinks to one row", () => {
             const res = diff(
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td rowspan="3"><smart-link data-htmldiff-id="TR-3">TR-3</smart-link></td><td><smart-link data-htmldiff-id="VER-213">VER-213</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="VER-214">VER-214</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="VER-211">VER-211</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="TR-3" rowspan="3"><smart-link data-htmldiff-id="TR-3">TR-3</smart-link></td><td data-htmldiff-id="VER-213"><smart-link data-htmldiff-id="VER-213">VER-213</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="VER-214"><smart-link data-htmldiff-id="VER-214">VER-214</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="VER-211"><smart-link data-htmldiff-id="VER-211">VER-211</smart-link></td></tr></tbody>' +
                 '</table></div>',
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td><smart-link data-htmldiff-id="TR-3">TR-3</smart-link></td><td><smart-link data-htmldiff-id="VER-211">VER-211</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="TR-3"><smart-link data-htmldiff-id="TR-3">TR-3</smart-link></td><td data-htmldiff-id="VER-211"><smart-link data-htmldiff-id="VER-211">VER-211</smart-link></td></tr></tbody>' +
                 '</table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody><tr><td rowspan="3"><smart-link data-htmldiff-id="TR-3">TR-3</smart-link></td><td><smart-link data-htmldiff-id="VER-211">VER-211</smart-link></td></tr><tr><td class="table-cell-deleted"><smart-link data-htmldiff-id="VER-213">VER-213</smart-link></td></tr><tr><td class="table-cell-deleted"><smart-link data-htmldiff-id="VER-214">VER-214</smart-link></td></tr></tbody></table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr><td data-htmldiff-id="TR-3" rowspan="3"><smart-link data-htmldiff-id="TR-3">TR-3</smart-link></td><td data-htmldiff-id="VER-211"><smart-link data-htmldiff-id="VER-211">VER-211</smart-link></td></tr><tr><td data-htmldiff-id="VER-213" class="table-cell-deleted"><smart-link data-htmldiff-id="VER-213">VER-213</smart-link></td></tr><tr><td data-htmldiff-id="VER-214" class="table-cell-deleted"><smart-link data-htmldiff-id="VER-214">VER-214</smart-link></td></tr></tbody></table></div>');
         });
 
         it("moves the merged cell onto the first kept row when the first row of its group is added", () => {
-            const res = diff('<div data-shadow-boundary=""><table><tbody><tr><td rowspan="2"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr><tr><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr></tbody></table></div>',
-                '<div data-shadow-boundary=""><table><tbody><tr><td rowspan="3"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td><smart-link data-htmldiff-id="TC-0">TC-0</smart-link></td></tr><tr><td><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr><tr><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr></tbody></table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody><tr><td rowspan="3"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr><tr><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr><tr><td class="table-cell-added"><smart-link data-htmldiff-id="TC-0">TC-0</smart-link></td></tr></tbody></table></div>');
+            const res = diff('<div><table><tbody><tr><td data-htmldiff-id="SPEC-1" rowspan="2"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr><tr><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr></tbody></table></div>',
+                '<div><table><tbody><tr><td data-htmldiff-id="SPEC-1" rowspan="3"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td data-htmldiff-id="TC-0"><smart-link data-htmldiff-id="TC-0">TC-0</smart-link></td></tr><tr><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr><tr><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr></tbody></table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr><td data-htmldiff-id="SPEC-1" rowspan="3"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr><tr><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr><tr><td data-htmldiff-id="TC-0" class="table-cell-added"><smart-link data-htmldiff-id="TC-0">TC-0</smart-link></td></tr></tbody></table></div>');
         });
 
         it("moves a gained trace under the kept rows of its group", () => {
-            const res = diff('<div data-shadow-boundary=""><table><tbody><tr><td rowspan="2"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr><tr><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr></tbody></table></div>',
-                '<div data-shadow-boundary=""><table><tbody><tr><td rowspan="3"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr><tr><td><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr><tr><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr></tbody></table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody><tr><td rowspan="3"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr><tr><td><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr><tr><td class="table-cell-added"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr></tbody></table></div>');
+            const res = diff('<div><table><tbody><tr><td data-htmldiff-id="SPEC-1" rowspan="2"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr><tr><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr></tbody></table></div>',
+                '<div><table><tbody><tr><td data-htmldiff-id="SPEC-1" rowspan="3"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr><tr><td data-htmldiff-id="TC-2"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr><tr><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr></tbody></table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr><td data-htmldiff-id="SPEC-1" rowspan="3"><smart-link data-htmldiff-id="SPEC-1">SPEC-1</smart-link></td><td data-htmldiff-id="TC-1"><smart-link data-htmldiff-id="TC-1">TC-1</smart-link></td></tr><tr><td data-htmldiff-id="TC-3"><smart-link data-htmldiff-id="TC-3">TC-3</smart-link></td></tr><tr><td data-htmldiff-id="TC-2" class="table-cell-added"><smart-link data-htmldiff-id="TC-2">TC-2</smart-link></td></tr></tbody></table></div>');
         });
 
         it("alternates replaced rows", () => {
             const res = diff(
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td><smart-link data-htmldiff-id="UC-41">UC-41</smart-link></td><td><smart-link data-htmldiff-id="VAL-3">VAL-3</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="UC-42">UC-42</smart-link></td><td><smart-link data-htmldiff-id="VAL-5">VAL-5</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="UC-41"><smart-link data-htmldiff-id="UC-41">UC-41</smart-link></td><td data-htmldiff-id="VAL-3"><smart-link data-htmldiff-id="VAL-3">VAL-3</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="UC-42"><smart-link data-htmldiff-id="UC-42">UC-42</smart-link></td><td data-htmldiff-id="VAL-5"><smart-link data-htmldiff-id="VAL-5">VAL-5</smart-link></td></tr></tbody>' +
                 '</table></div>',
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td><smart-link data-htmldiff-id="PRODREQ-193">PRODREQ-193</smart-link></td><td><smart-link data-htmldiff-id="COMP-1">COMP-1</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="PRODREQ-194">PRODREQ-194</smart-link></td><td><smart-link data-htmldiff-id="COMP-2">COMP-2</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="PRODREQ-193"><smart-link data-htmldiff-id="PRODREQ-193">PRODREQ-193</smart-link></td><td data-htmldiff-id="COMP-1"><smart-link data-htmldiff-id="COMP-1">COMP-1</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="PRODREQ-194"><smart-link data-htmldiff-id="PRODREQ-194">PRODREQ-194</smart-link></td><td data-htmldiff-id="COMP-2"><smart-link data-htmldiff-id="COMP-2">COMP-2</smart-link></td></tr></tbody>' +
                 '</table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody>' +
-                '<tr class="table-row-deleted"><td><smart-link data-htmldiff-id="UC-41">UC-41</smart-link></td><td><smart-link data-htmldiff-id="VAL-3">VAL-3</smart-link></td></tr>' +
-                '<tr class="table-row-added"><td><smart-link data-htmldiff-id="PRODREQ-193">PRODREQ-193</smart-link></td><td><smart-link data-htmldiff-id="COMP-1">COMP-1</smart-link></td></tr>' +
-                '<tr class="table-row-deleted"><td><smart-link data-htmldiff-id="UC-42">UC-42</smart-link></td><td><smart-link data-htmldiff-id="VAL-5">VAL-5</smart-link></td></tr>' +
-                '<tr class="table-row-added"><td><smart-link data-htmldiff-id="PRODREQ-194">PRODREQ-194</smart-link></td><td><smart-link data-htmldiff-id="COMP-2">COMP-2</smart-link></td></tr></tbody>' +
-                '</table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr class="table-row-deleted"><td data-htmldiff-id="UC-41"><smart-link data-htmldiff-id="UC-41">UC-41</smart-link></td><td data-htmldiff-id="VAL-3"><smart-link data-htmldiff-id="VAL-3">VAL-3</smart-link></td></tr><tr class="table-row-added"><td data-htmldiff-id="PRODREQ-193"><smart-link data-htmldiff-id="PRODREQ-193">PRODREQ-193</smart-link></td><td data-htmldiff-id="COMP-1"><smart-link data-htmldiff-id="COMP-1">COMP-1</smart-link></td></tr><tr class="table-row-deleted"><td data-htmldiff-id="UC-42"><smart-link data-htmldiff-id="UC-42">UC-42</smart-link></td><td data-htmldiff-id="VAL-5"><smart-link data-htmldiff-id="VAL-5">VAL-5</smart-link></td></tr><tr class="table-row-added"><td data-htmldiff-id="PRODREQ-194"><smart-link data-htmldiff-id="PRODREQ-194">PRODREQ-194</smart-link></td><td data-htmldiff-id="COMP-2"><smart-link data-htmldiff-id="COMP-2">COMP-2</smart-link></td></tr></tbody></table></div>');
         });
 
         it("alternates replaced groups whole", () => {
             const res = diff(
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td rowspan="2"><smart-link data-htmldiff-id="UC-41">UC-41</smart-link></td><td><smart-link data-htmldiff-id="VAL-3">VAL-3</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="VAL-4">VAL-4</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="UC-42">UC-42</smart-link></td><td><smart-link data-htmldiff-id="VAL-5">VAL-5</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="UC-41" rowspan="2"><smart-link data-htmldiff-id="UC-41">UC-41</smart-link></td><td data-htmldiff-id="VAL-3"><smart-link data-htmldiff-id="VAL-3">VAL-3</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="VAL-4"><smart-link data-htmldiff-id="VAL-4">VAL-4</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="UC-42"><smart-link data-htmldiff-id="UC-42">UC-42</smart-link></td><td data-htmldiff-id="VAL-5"><smart-link data-htmldiff-id="VAL-5">VAL-5</smart-link></td></tr></tbody>' +
                 '</table></div>',
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td rowspan="2"><smart-link data-htmldiff-id="PRODREQ-193">PRODREQ-193</smart-link></td><td><smart-link data-htmldiff-id="COMP-1">COMP-1</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="COMP-2">COMP-2</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="PRODREQ-194">PRODREQ-194</smart-link></td><td><smart-link data-htmldiff-id="COMP-3">COMP-3</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="PRODREQ-193" rowspan="2"><smart-link data-htmldiff-id="PRODREQ-193">PRODREQ-193</smart-link></td><td data-htmldiff-id="COMP-1"><smart-link data-htmldiff-id="COMP-1">COMP-1</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="COMP-2"><smart-link data-htmldiff-id="COMP-2">COMP-2</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="PRODREQ-194"><smart-link data-htmldiff-id="PRODREQ-194">PRODREQ-194</smart-link></td><td data-htmldiff-id="COMP-3"><smart-link data-htmldiff-id="COMP-3">COMP-3</smart-link></td></tr></tbody>' +
                 '</table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody>' +
-                '<tr class="table-row-deleted"><td rowspan="2"><smart-link data-htmldiff-id="UC-41">UC-41</smart-link></td><td><smart-link data-htmldiff-id="VAL-3">VAL-3</smart-link></td></tr>' +
-                '<tr class="table-row-deleted"><td><smart-link data-htmldiff-id="VAL-4">VAL-4</smart-link></td></tr>' +
-                '<tr class="table-row-added"><td rowspan="2"><smart-link data-htmldiff-id="PRODREQ-193">PRODREQ-193</smart-link></td><td><smart-link data-htmldiff-id="COMP-1">COMP-1</smart-link></td></tr>' +
-                '<tr class="table-row-added"><td><smart-link data-htmldiff-id="COMP-2">COMP-2</smart-link></td></tr>' +
-                '<tr class="table-row-deleted"><td><smart-link data-htmldiff-id="UC-42">UC-42</smart-link></td><td><smart-link data-htmldiff-id="VAL-5">VAL-5</smart-link></td></tr>' +
-                '<tr class="table-row-added"><td><smart-link data-htmldiff-id="PRODREQ-194">PRODREQ-194</smart-link></td><td><smart-link data-htmldiff-id="COMP-3">COMP-3</smart-link></td></tr></tbody>' +
-                '</table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr class="table-row-deleted"><td data-htmldiff-id="UC-41" rowspan="2"><smart-link data-htmldiff-id="UC-41">UC-41</smart-link></td><td data-htmldiff-id="VAL-3"><smart-link data-htmldiff-id="VAL-3">VAL-3</smart-link></td></tr><tr class="table-row-deleted"><td data-htmldiff-id="VAL-4"><smart-link data-htmldiff-id="VAL-4">VAL-4</smart-link></td></tr><tr class="table-row-added"><td data-htmldiff-id="PRODREQ-193" rowspan="2"><smart-link data-htmldiff-id="PRODREQ-193">PRODREQ-193</smart-link></td><td data-htmldiff-id="COMP-1"><smart-link data-htmldiff-id="COMP-1">COMP-1</smart-link></td></tr><tr class="table-row-added"><td data-htmldiff-id="COMP-2"><smart-link data-htmldiff-id="COMP-2">COMP-2</smart-link></td></tr><tr class="table-row-deleted"><td data-htmldiff-id="UC-42"><smart-link data-htmldiff-id="UC-42">UC-42</smart-link></td><td data-htmldiff-id="VAL-5"><smart-link data-htmldiff-id="VAL-5">VAL-5</smart-link></td></tr><tr class="table-row-added"><td data-htmldiff-id="PRODREQ-194"><smart-link data-htmldiff-id="PRODREQ-194">PRODREQ-194</smart-link></td><td data-htmldiff-id="COMP-3"><smart-link data-htmldiff-id="COMP-3">COMP-3</smart-link></td></tr></tbody></table></div>');
         });
 
         it("appends rows left over after alternating", () => {
             const res = diff(
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td><smart-link data-htmldiff-id="UC-41">UC-41</smart-link></td><td><smart-link data-htmldiff-id="VAL-3">VAL-3</smart-link></td></tr>' +
-                '<tr><td><smart-link data-htmldiff-id="UC-42">UC-42</smart-link></td><td><smart-link data-htmldiff-id="VAL-5">VAL-5</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="UC-41"><smart-link data-htmldiff-id="UC-41">UC-41</smart-link></td><td data-htmldiff-id="VAL-3"><smart-link data-htmldiff-id="VAL-3">VAL-3</smart-link></td></tr>' +
+                '<tr><td data-htmldiff-id="UC-42"><smart-link data-htmldiff-id="UC-42">UC-42</smart-link></td><td data-htmldiff-id="VAL-5"><smart-link data-htmldiff-id="VAL-5">VAL-5</smart-link></td></tr></tbody>' +
                 '</table></div>',
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td><smart-link data-htmldiff-id="PRODREQ-193">PRODREQ-193</smart-link></td><td><smart-link data-htmldiff-id="COMP-1">COMP-1</smart-link></td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="PRODREQ-193"><smart-link data-htmldiff-id="PRODREQ-193">PRODREQ-193</smart-link></td><td data-htmldiff-id="COMP-1"><smart-link data-htmldiff-id="COMP-1">COMP-1</smart-link></td></tr></tbody>' +
                 '</table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody>' +
-                '<tr class="table-row-deleted"><td><smart-link data-htmldiff-id="UC-41">UC-41</smart-link></td><td><smart-link data-htmldiff-id="VAL-3">VAL-3</smart-link></td></tr>' +
-                '<tr class="table-row-added"><td><smart-link data-htmldiff-id="PRODREQ-193">PRODREQ-193</smart-link></td><td><smart-link data-htmldiff-id="COMP-1">COMP-1</smart-link></td></tr>' +
-                '<tr class="table-row-deleted"><td><smart-link data-htmldiff-id="UC-42">UC-42</smart-link></td><td><smart-link data-htmldiff-id="VAL-5">VAL-5</smart-link></td></tr></tbody>' +
-                '</table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr class="table-row-deleted"><td data-htmldiff-id="UC-41"><smart-link data-htmldiff-id="UC-41">UC-41</smart-link></td><td data-htmldiff-id="VAL-3"><smart-link data-htmldiff-id="VAL-3">VAL-3</smart-link></td></tr><tr class="table-row-added"><td data-htmldiff-id="PRODREQ-193"><smart-link data-htmldiff-id="PRODREQ-193">PRODREQ-193</smart-link></td><td data-htmldiff-id="COMP-1"><smart-link data-htmldiff-id="COMP-1">COMP-1</smart-link></td></tr><tr class="table-row-deleted"><td data-htmldiff-id="UC-42"><smart-link data-htmldiff-id="UC-42">UC-42</smart-link></td><td data-htmldiff-id="VAL-5"><smart-link data-htmldiff-id="VAL-5">VAL-5</smart-link></td></tr></tbody></table></div>');
         });
     });
 
@@ -711,13 +651,11 @@ describe("Structural table redlining", () => {
                 `<ins data-operation-index="0">${newTable.replace("<table>", '<table data-htmldiff-id="redline-table-added-1">')}</ins>`);
         });
 
-        it("still merges a section table when a group lost a row", () => {
+        it("still merges a keyed table when a group lost a row", () => {
             const res = diff(
-                '<div data-shadow-boundary=""><table><tbody><tr><td rowspan="3">g</td><td>a1</td></tr><tr><td>a2</td></tr><tr><td>a3</td></tr></tbody></table></div>',
-                '<div data-shadow-boundary=""><table><tbody><tr><td rowspan="2">g</td><td>a1</td></tr><tr><td>a3</td></tr></tbody></table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody>' +
-                '<tr><td rowspan="3">g</td><td>a1</td></tr><tr><td>a3</td></tr><tr><td class="table-cell-deleted">a2</td></tr></tbody></table></div>');
+                '<div><table><tbody><tr><td rowspan="3" data-htmldiff-id="g">g</td><td data-htmldiff-id="a1">a1</td></tr><tr><td data-htmldiff-id="a2">a2</td></tr><tr><td data-htmldiff-id="a3">a3</td></tr></tbody></table></div>',
+                '<div><table><tbody><tr><td rowspan="2" data-htmldiff-id="g">g</td><td data-htmldiff-id="a1">a1</td></tr><tr><td data-htmldiff-id="a3">a3</td></tr></tbody></table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr><td data-htmldiff-id="g" rowspan="3">g</td><td data-htmldiff-id="a1">a1</td></tr><tr><td data-htmldiff-id="a3">a3</td></tr><tr><td data-htmldiff-id="a2" class="table-cell-deleted">a2</td></tr></tbody></table></div>');
         });
 
         it("keeps colspan of title row unchanged on merge", () => {
@@ -758,22 +696,17 @@ describe("Structural table redlining", () => {
                 '</table>');
         });
 
-        it("keeps rowspan of deleted group in a section", () => {
+        it("keeps rowspan of a deleted group in a keyed table", () => {
             const res = diff(
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td rowspan="2">g</td><td>a</td></tr>' +
-                '<tr><td>b</td></tr>' +
-                '<tr><td>x</td><td>y</td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td rowspan="2" data-htmldiff-id="g">g</td><td data-htmldiff-id="a">a</td></tr>' +
+                '<tr><td data-htmldiff-id="b">b</td></tr>' +
+                '<tr><td data-htmldiff-id="x">x</td><td data-htmldiff-id="y">y</td></tr></tbody>' +
                 '</table></div>',
-                '<div data-shadow-boundary=""><table><tbody>' +
-                '<tr><td>x</td><td>y</td></tr></tbody>' +
+                '<div><table><tbody>' +
+                '<tr><td data-htmldiff-id="x">x</td><td data-htmldiff-id="y">y</td></tr></tbody>' +
                 '</table></div>');
-            expect(res).to.equal(
-                '<div data-shadow-boundary=""><table data-htmldiff-id="redline-table-0"><tbody>' +
-                '<tr class="table-row-deleted"><td rowspan="2">g</td><td>a</td></tr>' +
-                '<tr class="table-row-deleted"><td>b</td></tr>' +
-                '<tr><td>x</td><td>y</td></tr></tbody>' +
-                '</table></div>');
+            expect(res).to.equal('<div><table data-htmldiff-id="redline-table-0"><tbody><tr class="table-row-deleted"><td data-htmldiff-id="g" rowspan="2">g</td><td data-htmldiff-id="a">a</td></tr><tr class="table-row-deleted"><td data-htmldiff-id="b">b</td></tr><tr><td data-htmldiff-id="x">x</td><td data-htmldiff-id="y">y</td></tr></tbody></table></div>');
         });
 
         it("wraps a rich text table whole when a group was deleted", () => {
@@ -910,16 +843,11 @@ describe("Structural table redlining", () => {
                 '</table></ins></div>');
         });
 
-        it("wraps section tables whole when their headers differ", () => {
+        it("wraps keyed tables whole when their headers differ", () => {
             const headed = (header: string, item: string): string =>
-                `<div data-shadow-boundary=""><table><thead><tr><th>${header}</th><th>Executed Test Case</th></tr></thead><tbody><tr><td>${item}</td><td>TC-4</td></tr></tbody></table></div>`;
+                `<div><table><thead><tr><th>${header}</th><th>Executed Test Case</th></tr></thead><tbody><tr><td data-htmldiff-id="${item}">${item}</td><td>TC-4</td></tr></tbody></table></div>`;
             const res = diff(headed("Test run", "TR-4"), headed("Items", "SPEC-2"));
-            expect(res).to.equal(
-                "<div data-shadow-boundary=\"\">" +
-                    "<del data-operation-index=\"1\"><table data-htmldiff-id=\"redline-table-deleted-0\"><thead><tr><th>Test run</th><th>Executed Test Case</th></tr></thead><tbody><tr><td>TR-4</td><td>TC-4</td></tr></tbody></table></del>" +
-                    "<ins data-operation-index=\"1\"><table data-htmldiff-id=\"redline-table-added-1\"><thead><tr><th>Items</th><th>Executed Test Case</th></tr></thead><tbody><tr><td>SPEC-2</td><td>TC-4</td></tr></tbody></table></ins>" +
-                    "</div>",
-            );
+            expect(res).to.equal('<div><del data-operation-index="1"><table data-htmldiff-id="redline-table-deleted-0"><thead><tr><th>Test run</th><th>Executed Test Case</th></tr></thead><tbody><tr><td data-htmldiff-id="TR-4">TR-4</td><td>TC-4</td></tr></tbody></table></del><ins data-operation-index="1"><table data-htmldiff-id="redline-table-added-1"><thead><tr><th>Items</th><th>Executed Test Case</th></tr></thead><tbody><tr><td data-htmldiff-id="SPEC-2">SPEC-2</td><td>TC-4</td></tr></tbody></table></ins></div>');
         });
 
         it("wraps tables whole when only repeated filler values recur", () => {
@@ -979,6 +907,14 @@ describe("Structural table redlining", () => {
                 '<ins data-operation-index="1"><table data-htmldiff-id="REQ-2" data-htmldiff-inner-diff="true"><tbody>' +
                 '<tr><td>a</td></tr></tbody>' +
                 '</table></ins></div>');
+        });
+
+        it("shows a table with its own id but no inner diff as it is", () => {
+            const res = diff(
+                '<div><table data-htmldiff-id="REQ-1"><tbody><tr><td>Fire</td></tr></tbody></table></div>',
+                '<div><table data-htmldiff-id="REQ-1"><tbody><tr><td>Ice</td></tr></tbody></table></div>',
+            );
+            expect(res).to.equal('<div><table data-htmldiff-id="REQ-1"><tbody><tr><td>Ice</td></tr></tbody></table></div>');
         });
 
         it("marks added rows inside table with same id", () => {

@@ -1,7 +1,7 @@
 // Calculates the differences into a list of edit operations.
 import { expect } from "chai";
-import { calculateOperations, Operation } from "../../src/core/operations";
-import { htmlToTokens } from "../../src/core/tokens";
+import { calculateOperations, Operation } from "./operations";
+import { htmlToTokens } from "./tokens";
 
 describe("calculateOperations", () => {
     const cut = calculateOperations;
