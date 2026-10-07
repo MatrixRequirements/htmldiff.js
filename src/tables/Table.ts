@@ -112,12 +112,43 @@ export class Table {
     }
 
     /**
-     * The tables outside any other table.
+     * The tables outside any other table, except those inside an element that is one unit: an
+     * element with an identity of its own and no inner diff flag is shown as it is or replaced
+     * whole by the flat diff, whatever it holds, so its tables are left alone.
      * @param html The html.
      * @returns The tables in document order.
      */
     static findTopLevel(html: string): Table[] {
-        return findElements(html, ["table"]).map((element) => Table.read(element));
+        const elements = findElements(html, ["table"]);
+        const sealed: Record<number, boolean> = {};
+        const openTags: { name: string; sealed: boolean }[] = [];
+        let tableIndex = 0;
+
+        scanTags(html, (tag) => {
+            if (tag.isComment) {
+                return;
+            }
+            if (tag.isClosing) {
+                for (let depth = openTags.length - 1; depth >= 0; depth--) {
+                    if (openTags[depth].name === tag.name) {
+                        openTags.length = depth;
+                        break;
+                    }
+                }
+                return;
+            }
+            if (elements[tableIndex] && elements[tableIndex].start === tag.start) {
+                sealed[tag.start] = openTags.some((open) => open.sealed);
+                tableIndex++;
+            }
+            if (!tag.isSelfClosing) {
+                const id = getTagAttribute(tag.text, HTMLDIFF_ID_ATTRIBUTE);
+                const flag = getTagAttribute(tag.text, INNER_DIFF_ATTRIBUTE);
+                openTags.push({ name: tag.name, sealed: id !== null && (flag === null || flag === "false") });
+            }
+        });
+
+        return elements.filter((element) => !sealed[element.start]).map((element) => Table.read(element));
     }
 
     /**

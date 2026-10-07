@@ -21,6 +21,7 @@
     "sourceMap": false,
     "noEmitOnError": true,
     "removeComments": true,
+    "noEmit": true,
     "noEmitHelpers": false,
     "listEmittedFiles": false,
     "listFiles": false,

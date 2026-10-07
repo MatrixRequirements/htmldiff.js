@@ -177,7 +177,10 @@ export class TableVersion {
 
     /**
      * The identities of a row's key cells, in order, a part standing for its merged cell: the
-     * producer's statement of what the row is about. Empty unless cells carry their own identity.
+     * producer's statement of what the row is about. The identity is read from cells, not rows,
+     * because a key cell often spans several rows: those rows never contain it, yet belong to
+     * it, and through the span every one of them inherits it. Empty unless cells carry their
+     * own identity.
      * @param rowIndex The row.
      * @returns The keys.
      */

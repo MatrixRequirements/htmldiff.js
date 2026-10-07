@@ -31,6 +31,12 @@ describe("TableRedlining", () => {
         expect(redline(before, after)).to.deep.equal({ before, after });
     });
 
+    it("leaves tables inside an element that is one unit untouched", () => {
+        const before = `<div data-htmldiff-id="a">${plain([["a"]])}</div>`;
+        const after = `<div data-htmldiff-id="a">${plain([["b"]])}</div>`;
+        expect(redline(before, after)).to.deep.equal({ before, after });
+    });
+
     it("gives an unpaired table an id of its own", () => {
         expect(redline("", plain([["a"]])).after).to.equal('<table data-htmldiff-id="redline-table-added-0"><tbody><tr><td>a</td></tr></tbody></table>');
         expect(redline(plain([["a"]]), "").before).to.equal('<table data-htmldiff-id="redline-table-deleted-0"><tbody><tr><td>a</td></tr></tbody></table>');

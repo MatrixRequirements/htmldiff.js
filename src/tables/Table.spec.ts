@@ -34,6 +34,15 @@ describe("Table", () => {
     });
 
     describe("findTopLevel", () => {
+        it("leaves out tables inside an element that is one unit", () => {
+            const table = "<table><tr><td>a</td></tr></table>";
+            const sealed = `<div data-htmldiff-id="a">${table}</div>`;
+            const open = `<div data-htmldiff-id="b" data-htmldiff-inner-diff="true">${table}</div>`;
+            const tables = Table.findTopLevel(`${sealed}${open}<p data-htmldiff-id="c">x</p>${table}`);
+            expect(tables.length).to.equal(2);
+            expect(tables[0].start).to.equal(sealed.length + open.indexOf("<table>"));
+        });
+
         it("finds outer tables only", () => {
             const outer = "<table><tr><td><table><tr><td>in</td></tr></table></td></tr></table>";
             const tables = Table.findTopLevel(`<div><table><tr><td>a</td></tr></table></div>${outer}`);

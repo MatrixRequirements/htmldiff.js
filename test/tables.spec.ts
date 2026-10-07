@@ -909,6 +909,30 @@ describe("tables", () => {
                 '</table></ins></div>');
         });
 
+        it("shows a table inside an element with its own id but no inner diff as it is", () => {
+            const table = (content: string): string => `<table><tbody><tr><td>${content}</td></tr><tr><td>same</td></tr></tbody></table>`;
+            const res = diff(`<div data-htmldiff-id="a">${table("old")}</div>`, `<div data-htmldiff-id="a">${table("new")}</div>`);
+            expect(res).to.equal(`<div data-htmldiff-id="a">${table("new")}</div>`);
+        });
+
+        it("replaces an element with another id whole, its table included", () => {
+            const table = (content: string): string => `<table><tbody><tr><td>${content}</td></tr></tbody></table>`;
+            const res = diff(`<div data-htmldiff-id="a">${table("old")}</div>`, `<div data-htmldiff-id="b">${table("new")}</div>`);
+            expect(res).to.equal(
+                `<del data-operation-index="0"><div data-htmldiff-id="a">${table("old")}</div></del>` +
+                    `<ins data-operation-index="0"><div data-htmldiff-id="b">${table("new")}</div></ins>`,
+            );
+        });
+
+        it("diffs tables inside an element that asks for an inner diff", () => {
+            const table = (content: string): string => `<table><tbody><tr><td>${content}</td></tr><tr><td>same</td></tr></tbody></table>`;
+            const wrap = (inner: string): string => `<div data-htmldiff-id="a" data-htmldiff-inner-diff="true">${inner}</div>`;
+            const res = diff(wrap(table("old")), wrap(table("new")));
+            expect(res).to.equal(
+                wrap('<table data-htmldiff-id="redline-table-0"><tbody><tr class="table-row-deleted"><td>old</td></tr><tr class="table-row-added"><td>new</td></tr><tr><td>same</td></tr></tbody></table>'),
+            );
+        });
+
         it("shows a table with its own id but no inner diff as it is", () => {
             const res = diff(
                 '<div><table data-htmldiff-id="REQ-1"><tbody><tr><td>Fire</td></tr></tbody></table></div>',

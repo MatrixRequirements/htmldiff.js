@@ -150,7 +150,7 @@ Limitations:
 Tables are compared as structures before the flat diff runs. A table with its own
 `data-htmldiff-id` takes part only when it also carries `data-htmldiff-inner-diff`, like every
 other element with an identity: without the inner-id it is one unit, shown as it is or replaced
-whole. The two documents' top level
+whole. The same goes for a table inside such an element. The two documents' top level
 tables are paired (by their own `data-htmldiff-id` when they have one, otherwise by the values
 they hold; a table in the other's place is the same table only when the two still share half of
 what the smaller one holds, or when both are generated tables, see below), each pair is aligned
@@ -177,7 +177,11 @@ The diff reads nothing else from the content. A producer that knows what a row i
 so by giving the cells an identity with `data-htmldiff-id`. 
 When both versions carry such cells, those alone pair the rows: the same
 identities are the same row, whatever its other cells say, and they get cell diffs; other
-identities are another row, deleted and added whole.
+identities are another row, deleted and added whole. The identity sits on the cell, not on
+the row, because such cells often span several rows: the rows under a spanning cell never
+contain it, yet they belong to it, and an id on the cell is inherited by every row it spans,
+where an id on each `<tr>` would have to be composed and repeated by the producer. A cell id
+also says which cells name the row and which are content.
 
 Both versions of a pair get the same `data-htmldiff-id` (`redline-table-<n>` unless the table
 had one), a table only one version has gets one of its own, so the flat diff keeps every table
