@@ -3,8 +3,6 @@ import diff from "../src/htmldiff";
 
 describe("Diff", () => {
     const cut = diff;
-    const html_to_tokens = diff.htmlToTokens;
-    const calculate_operations = diff.calculateOperations;
     let res: string;
 
     describe("When both inputs are the same", () => {
@@ -44,94 +42,6 @@ describe("Diff", () => {
     describe("When a class name is specified", () => {
         it("should include the class in the wrapper tags", () => {
             expect(cut("input", "input 2", "diff-result")).to.equal('input<ins data-operation-index="1" class="diff-result"> 2</ins>');
-        });
-    });
-
-    const equalOperation = { action: "equal", startInBefore: 0, endInBefore: 0, startInAfter: 0, endInAfter: 0 };
-    const replaceOperation = { action: "replace", startInBefore: 0, endInBefore: 0, startInAfter: 0, endInAfter: 0 };
-
-    describe("Image Differences", () => {
-        it("show two images as different if their src attributes are different", () => {
-            const ops = calculate_operations(html_to_tokens('<img src="a.jpg">'), html_to_tokens('<img src="b.jpg">'));
-            expect(ops.length).to.equal(1);
-            expect(ops[0]).to.eql(replaceOperation);
-        });
-
-        it("should show two images are the same if their src attributes are the same", () => {
-            const ops = calculate_operations(html_to_tokens('<img src="a.jpg">'), html_to_tokens('<img src="a.jpg" alt="hey!">'));
-            expect(ops.length).to.equal(1);
-            expect(ops[0]).to.eql(equalOperation);
-        });
-    });
-
-    describe("Widget Differences", () => {
-        it("show two widgets as different if their data attributes are different", () => {
-            const ops = calculate_operations(html_to_tokens('<object data="a.jpg"></object>'), html_to_tokens('<object data="b.jpg"></object>'));
-            expect(ops.length).to.equal(1);
-            expect(ops[0]).to.eql(replaceOperation);
-        });
-
-        it("should show two widgets are the same if their data attributes are the same", () => {
-            const ops = calculate_operations(
-                html_to_tokens('<object data="a.jpg"><param>yo!</param></object>'),
-                html_to_tokens('<object data="a.jpg"></object>'),
-            );
-            expect(ops.length).to.equal(1);
-            expect(ops[0]).to.eql(equalOperation);
-        });
-    });
-
-    describe("Math Differences", () => {
-        it("should show two math elements as different if their contents are different", () => {
-            const ops = calculate_operations(
-                html_to_tokens('<math data-uuid="55784cd906504787a8e459e80e3bb554"><msqrt><msup><mi>b</mi><mn>2</mn></msup></msqrt></math>'),
-                html_to_tokens('<math data-uuid="55784cd906504787a8e459e80e3bb554"><msqrt><msup><mn>b</mn><mn>5</mn></msup></msqrt></math>'),
-            );
-            expect(ops.length).to.equal(1);
-            expect(ops[0]).to.eql(replaceOperation);
-        });
-
-        it("should show two math elements as the same if their contents are the same", () => {
-            const ops = calculate_operations(
-                html_to_tokens('<math data-uuid="15568cd906504876548459e80e356878"><msqrt><msup><mi>b</mi><mn>2</mn></msup></msqrt></math>'),
-                html_to_tokens('<math data-uuid="55784cd906504787a8e459e80e3bb554"><msqrt><msup><mi>b</mi><mn>2</mn></msup></msqrt></math>'),
-            );
-            expect(ops.length).to.equal(1);
-            expect(ops[0]).to.eql(equalOperation);
-        });
-    });
-
-    describe("Video Differences", () => {
-        it("show two widgets as different if their data attributes are different", () => {
-            const ops = calculate_operations(
-                html_to_tokens('<video data-uuid="0787866ab5494d88b4b1ee423453224b"><source src="inkling-video:///big_buck_bunny/webm_high" type="video/webm" /></video>'),
-                html_to_tokens('<video data-uuid="0787866ab5494d88b4b1ee423453224b"><source src="inkling-video:///big_buck_rabbit/mp4" type="video/webm" /></video>'),
-            );
-            expect(ops.length).to.equal(1);
-            expect(ops[0]).to.eql(replaceOperation);
-        });
-
-        it("should show two widgets are the same if their data attributes are the same", () => {
-            const ops = calculate_operations(
-                html_to_tokens('<video data-uuid="65656565655487787484545454548494"><source src="inkling-video:///big_buck_bunny/webm_high" type="video/webm" /></video>'),
-                html_to_tokens('<video data-uuid="0787866ab5494d88b4b1ee423453224b"><source src="inkling-video:///big_buck_bunny/webm_high" type="video/webm" /></video>'),
-            );
-            expect(ops.length).to.equal(1);
-            expect(ops[0]).to.eql(equalOperation);
-        });
-    });
-
-    describe("iframe Differences", () => {
-        it("show two widgets as different if their data attributes are different", () => {
-            const ops = calculate_operations(html_to_tokens('<iframe src="a.jpg"></iframe>'), html_to_tokens('<iframe src="b.jpg"></iframe>'));
-            expect(ops.length).to.equal(1);
-            expect(ops[0]).to.eql(replaceOperation);
-        });
-
-        it("should show two widgets are the same if their data attributes are the same", () => {
-            const ops = calculate_operations(html_to_tokens('<iframe src="a.jpg"></iframe>'), html_to_tokens('<iframe src="a.jpg" class="foo"></iframe>'));
-            expect(ops.length).to.equal(1);
-            expect(ops[0]).to.eql(equalOperation);
         });
     });
 

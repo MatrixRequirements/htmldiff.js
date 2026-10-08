@@ -2,7 +2,8 @@
  * A table cell of the merged table: its tags and content. While spans are expanded it also
  * knows which merged cell it is, or stands for.
  */
-import { CELL_ADDED_CLASS, CELL_DELETED_CLASS, HTMLDIFF_ID_ATTRIBUTE } from "./constants";
+import { HTMLDIFF_ID_ATTRIBUTE } from "../constants";
+import { CELL_ADDED_CLASS, CELL_DELETED_CLASS } from "./constants";
 import { addTagClass, decodeEntities, Element, findElements, getTagAttribute, scanTags } from "./html";
 
 /** The text, the identities of the atomic elements and the images of a cell. */

@@ -4,6 +4,7 @@
  * diff, a reduced list inside a recursive inner diff), so the active regular expression is
  * kept here and read by the tokenizer and the renderer.
  */
+import { HTMLDIFF_ID_ATTRIBUTE, INNER_DIFF_ATOMIC_TAGS_ATTRIBUTE, INNER_DIFF_ATTRIBUTE } from "../constants";
 
 /**
  * The default atomic tags. The tag name must be followed by a delimiter (not a \b word
@@ -28,7 +29,7 @@ export const noAtomicTagsRegExp = /^<(?!)/;
  * into a nested child. The leading \s prevents matching 'x-data-htmldiff-id'.
  */
 export const dataHtmlDiffIdRegExp =
-    /^<([a-z-]+)(?:[^>"']|"[^"]*"|'[^']*')*\sdata-htmldiff-id=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))*.)["']?/;
+    new RegExp(`^<([a-z-]+)(?:[^>"']|"[^"]*"|'[^']*')*\\s${HTMLDIFF_ID_ATTRIBUTE}=["']?((?:.(?!["']?\\s+(?:\\S+)=|\\s*\\/?[>"']))*.)["']?`);
 
 /**
  * Opt-in marker for the recursive inner diff. When two matched atomic tokens (typically
@@ -37,14 +38,14 @@ export const dataHtmlDiffIdRegExp =
  * The attribute must appear in the element's opening tag. Captures the attribute value;
  * a bare attribute or any value other than "false" enables the opt-in.
  */
-export const dataHtmlDiffInnerDiffRegExp = /^<[^>]*\sdata-htmldiff-inner-diff(?:\s*=\s*["']?([^"'\s/>]*)|(?=[\s/>]))/;
+export const dataHtmlDiffInnerDiffRegExp = new RegExp(`^<[^>]*\\s${INNER_DIFF_ATTRIBUTE}(?:\\s*=\\s*["']?([^"'\\s/>]*)|(?=[\\s/>]))`);
 
 /**
  * Per-element override for the atomic tags used inside a recursive inner diff. The value
  * is a comma separated tag name list, like the atomicTags parameter of the diff function;
  * an empty value means no tag name is atomic.
  */
-export const dataHtmlDiffInnerDiffAtomicTagsRegExp = /^<[^>]*\sdata-htmldiff-inner-diff-atomic-tags\s*=\s*["']([^"']*)["']/;
+export const dataHtmlDiffInnerDiffAtomicTagsRegExp = new RegExp(`^<[^>]*\\s${INNER_DIFF_ATOMIC_TAGS_ATTRIBUTE}\\s*=\\s*["']([^"']*)["']`);
 
 let atomicTagsRegExp = defaultAtomicTagsRegExp;
 

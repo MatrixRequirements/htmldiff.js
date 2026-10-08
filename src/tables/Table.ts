@@ -3,7 +3,7 @@
  * row appended to the table body goes. The merged table is rendered back from it.
  */
 import { Cell } from "./Cell";
-import { HTMLDIFF_ID_ATTRIBUTE, INNER_DIFF_ATTRIBUTE } from "./constants";
+import { HTMLDIFF_ID_ATTRIBUTE, INNER_DIFF_ATTRIBUTE } from "../constants";
 import { Element, findElements, getTagAttribute, scanTags, setTagAttribute } from "./html";
 import { Row } from "./Row";
 
@@ -23,7 +23,6 @@ export class Table {
     readonly start: number;
     readonly end: number;
     readonly inner: string;
-    /** Whether a document section holds the table. */
     readonly chunks: Chunk[];
     readonly appendChunk: AppendChunk;
 

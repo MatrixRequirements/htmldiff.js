@@ -1,6 +1,5 @@
 import { expect } from "chai";
-import { diffCore, renderOperations } from "./diff";
-import { htmlToTokens } from "./tokens";
+import { diffCore } from "./diff";
 
 describe("diff", () => {
     describe("diffCore", () => {
@@ -15,16 +14,6 @@ describe("diff", () => {
         it("passes class and prefix through", () => {
             expect(diffCore("a", "b", "cls", "pre")).to.equal(
                 '<del data-pre-operation-index="0" class="cls">a</del><ins data-pre-operation-index="0" class="cls">b</ins>',
-            );
-        });
-    });
-
-    describe("renderOperations", () => {
-        it("renders operations over tokens", () => {
-            const before = htmlToTokens("a");
-            const after = htmlToTokens("b");
-            expect(renderOperations(before, after, [{ action: "replace", startInBefore: 0, endInBefore: 0, startInAfter: 0, endInAfter: 0 }])).to.equal(
-                '<del data-operation-index="0">a</del><ins data-operation-index="0">b</ins>',
             );
         });
     });

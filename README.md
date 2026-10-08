@@ -247,6 +247,8 @@ Everything is TypeScript. The library lives in `src/` and is compiled to CommonJ
 published.
 
 - `src/htmldiff.ts` is the facade: it runs the table pass, then the flat diff.
+- `src/constants.ts` names the attributes the diff reads, `data-htmldiff-id` and
+  `data-htmldiff-inner-diff`: the contract between a producer of HTML and the diff.
 - `src/core/` is the flat diff, one module per stage: `atomicTags` (which elements are one
   token), `tokens` (tokenizing and token keys), `matching` (matching blocks), `operations`
   (insert, delete, replace, equal), `rendering` (ins/del markup and the recursive inner

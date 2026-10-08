@@ -19,10 +19,7 @@
  *   == '<p>this is some <ins class="diff-class">more </ins>text</p>'
  */
 import { buildAtomicTagsRegExp, defaultAtomicTagsRegExp, setAtomicTagsRegExp } from "./core/atomicTags";
-import { diffCore, renderOperations } from "./core/diff";
-import { createMap, createSegment, findBestMatch, findMatchingBlocks } from "./core/matching";
-import { calculateOperations } from "./core/operations";
-import { createToken, getKeyForToken, htmlToTokens } from "./core/tokens";
+import { diffCore } from "./core/diff";
 import { TableRedlining } from "./tables";
 
 /**
@@ -47,17 +44,5 @@ function diff(before: string, after: string, className?: string | null, dataPref
 
     return diffCore(prepared.before, prepared.after, className, dataPrefix);
 }
-
-// the stages of the flat diff, for callers that run them one by one
-diff.htmlToTokens = htmlToTokens;
-diff.calculateOperations = calculateOperations;
-diff.renderOperations = renderOperations;
-diff.findMatchingBlocks = Object.assign(findMatchingBlocks, {
-    findBestMatch,
-    createMap,
-    createToken,
-    createSegment,
-    getKeyForToken,
-});
 
 export = diff;

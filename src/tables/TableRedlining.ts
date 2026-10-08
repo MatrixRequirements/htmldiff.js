@@ -9,7 +9,8 @@
  * Classes used on the merged table: table-row-added, table-row-deleted on tr;
  * table-cell-added, table-cell-deleted on td, th and col.
  */
-import { CellDiff, HTMLDIFF_ID_ATTRIBUTE, INNER_DIFF_ATTRIBUTE, TABLE_ID_PREFIX } from "./constants";
+import { HTMLDIFF_ID_ATTRIBUTE, INNER_DIFF_ATTRIBUTE } from "../constants";
+import { CellDiff, TABLE_ID_PREFIX } from "./constants";
 import { removeTagAttribute, Replacement, replaceRanges, setTagAttribute } from "./html";
 import { Table } from "./Table";
 import { TableAligner } from "./TableAligner";
