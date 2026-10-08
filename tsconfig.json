@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "CommonJS",
+    "moduleResolution": "node",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -16,19 +17,24 @@
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "suppressImplicitAnyIndexErrors": true,
     "strictNullChecks": true,
     "sourceMap": false,
     "noEmitOnError": true,
     "removeComments": true,
+    "noEmit": true,
     "noEmitHelpers": false,
     "listEmittedFiles": false,
     "listFiles": false,
-    "pretty": true,
     "experimentalDecorators": false,
-    "emitDecoratorMetadata": false
+    "emitDecoratorMetadata": false,
+    "types": [
+      "node",
+      "mocha"
+    ],
+    "pretty": true
   },
-  "files": [
-    "htmldiff-cli.ts"
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts"
   ]
 }

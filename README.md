@@ -145,6 +145,48 @@ Limitations:
 - The recursion depth is capped at 10 levels as a backstop against deep
   nesting. Opted-in elements beyond the cap are rendered as their after version.
 
+### Tables
+
+Tables are compared as structures before the flat diff runs. A table with its own
+`data-htmldiff-id` takes part only when it also carries `data-htmldiff-inner-diff`, like every
+other element with an identity: without the inner-id it is one unit, shown as it is or replaced
+whole. The same goes for a table inside such an element. The two documents' top level
+tables are paired (by their own `data-htmldiff-id` when they have one, otherwise by the values
+they hold; a table in the other's place is the same table only when the two still share half of
+what the smaller one holds, or when both are generated tables, see below), each pair is aligned
+column by column and row by row, and a merged table takes the place of the after version's
+table. A table without a partner is kept whole, so the flat diff wraps it as added or deleted:
+
+- an added or deleted row is a whole row with the class `table-row-added` or
+  `table-row-deleted`,
+- an added or deleted column marks every one of its cells (and its `<col>`, when the table has
+  a `<colgroup>`) with `table-cell-added` or `table-cell-deleted`,
+- a kept cell holds the diff of its content, with the usual `<ins>`/`<del>` tags,
+- a row that keeps less than half of its content, or a column no kept row agrees with, is
+  deleted and added instead of diffed; so is a moved row or column,
+- merged cells (`rowspan`, `colspan`) are kept. A row that a kept group (a merged cell and the
+  rows it spans) lost or gained goes under the group's kept rows and carries the change on its
+  cells (`table-cell-deleted` / `table-cell-added`), not on the row: the group's cell, sitting on
+  the group's first kept row, spans it like any other row of the group. A view that hides the
+  changed cells then hides nothing the span counts on, so the layout holds. A whole group that
+  one version has is added or deleted row by row.
+- in a table without such a statement, a change of its merged cells (a cell merged, split, a
+  span grown or shrunk) makes it another table: both versions are kept whole.
+
+The diff reads nothing else from the content. A producer that knows what a row is about says
+so by giving the cells an identity with `data-htmldiff-id`. 
+When both versions carry such cells, those alone pair the rows: the same
+identities are the same row, whatever its other cells say, and they get cell diffs; other
+identities are another row, deleted and added whole. The identity sits on the cell, not on
+the row, because such cells often span several rows: the rows under a spanning cell never
+contain it, yet they belong to it, and an id on the cell is inherited by every row it spans,
+where an id on each `<tr>` would have to be composed and repeated by the producer. A cell id
+also says which cells name the row and which are content.
+
+Both versions of a pair get the same `data-htmldiff-id` (`redline-table-<n>` unless the table
+had one), a table only one version has gets one of its own, so the flat diff keeps every table
+whole and emits the merged table as it is. The styling of the classes is up to the consumer.
+
 ### Example
 
 JavaScript:
@@ -198,14 +240,40 @@ description please see API documentation above.
 
 ## Development
 
-After cloning the repository run `npm i` or `npm install` to install the necessary 
-dependencies. A run of `npm run make` creates the JavaScript output file. 
-`npm run lint` checks the TypeScript sources with TSLint. `npm test` runs all the
-tests from the `test` directory. `npm run testsample` diffs the HTML sample files 
-from the directory `sample` and logs the result to the console.
+After cloning the repository run `npm install` to install the dependencies.
 
-The command line interface of htmldiff is developed in TypeScript so you have to run
-`npm run make` once to create the JavaScript output file.
+Everything is TypeScript. The library lives in `src/` and is compiled to CommonJS in `js/`
+(`js/htmldiff.js` is the entry point, `js/htmldiff.d.ts` the typings); `js/` is what gets
+published.
+
+- `src/htmldiff.ts` is the facade: it runs the table pass, then the flat diff.
+- `src/constants.ts` names the attributes the diff reads, `data-htmldiff-id` and
+  `data-htmldiff-inner-diff`: the contract between a producer of HTML and the diff.
+- `src/core/` is the flat diff, one module per stage: `atomicTags` (which elements are one
+  token), `tokens` (tokenizing and token keys), `matching` (matching blocks), `operations`
+  (insert, delete, replace, equal), `rendering` (ins/del markup and the recursive inner
+  diff) and `diff` (the pipeline).
+- `src/tables/` is the structural table pass, one class per concern: `Cell`, `Row` and
+  `Table` are the model, `TableVersion` a table as the alignment reads it, `SequenceAligner`,
+  `ColumnAligner`, `RowAligner` and `TableAligner` decide what is the same, `MergedCells`
+  handles spans, `TableMerger` writes the merged table and `TableRedlining` is the pass
+  itself. `html.ts`, `similarity.ts` and `helpers.ts` are plain helper functions.
+
+Tests are TypeScript too, run by mocha through `ts-node`. Every module and class has a spec
+next to it (`src/**/*.spec.ts`, left out of the build); the end to end specs that go through
+`diff()` itself live in `test/`.
+
+Scripts:
+
+- `npm run build` compiles `src/` to `js/`.
+- `npm test` builds, type-checks sources and specs, then runs the specs.
+- `npm run lint` checks sources and specs with ESLint.
+- `npm run verify` does all of that in one go and compiles the CLI; `npm publish` runs it first
+  (`prepublishOnly`), so nothing unbuilt or untested can be published. `npm install` in a clone
+  builds `js/` as well (`prepare`).
+- `npm run make` builds the library and the command line interface, `htmldiff-cli.ts`.
+- `npm run testsample` diffs the HTML sample files from the directory `sample` and logs the
+  result to the console.
 
 
 ## Credits

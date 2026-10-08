@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": ".",
+    "noEmit": false,
+    "noEmitOnError": true,
+    "types": [
+      "node"
+    ]
+  },
+  "include": [],
+  "files": [
+    "htmldiff-cli.ts"
+  ]
+}

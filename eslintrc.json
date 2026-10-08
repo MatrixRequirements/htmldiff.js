@@ -2,7 +2,7 @@
     "root": true,
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
-        "project": "./app/src/tsconfig.json"
+        "project": ["./tsconfig.json", "./tsconfig.cli.json"]
     },
     "plugins": [
         "@typescript-eslint",
@@ -43,25 +43,16 @@
             "warn",
             {
                 "require": {
-                    "ArrowFunctionExpression": true,
                     "ClassDeclaration": true,
-                    "ClassExpression": true,
                     "FunctionDeclaration": true,
-                    "FunctionExpression": true,
                     "MethodDefinition": true
                 },
                 "contexts": [
-                    "Property",
-                    "ClassProperty:not([accessibility=\"private\"])",
-                    "TSMethodSignature",
                     "TSEnumDeclaration",
                     "TSInterfaceDeclaration",
-                    "TSTypeAliasDeclaration",
-                    "-TSPropertySignature",
-                    "ExportNamedDeclaration"
+                    "TSTypeAliasDeclaration"
                 ],
-                "checkGetters": true,
-                "checkSetters": true,
+                "publicOnly": true,
                 "exemptEmptyConstructors": true
             }
         ],
