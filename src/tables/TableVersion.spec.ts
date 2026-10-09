@@ -75,6 +75,17 @@ describe("TableVersion", () => {
             const v = TableVersion.read(table);
             expect(v.rowKeys(1)).to.deep.equal(["SPEC-1", "TC-2"]);
         });
+
+        it("lists the keys of every row at once", () => {
+            const table = readTable(
+                '<table><tbody><tr><td rowspan="2" data-htmldiff-id="SPEC-1">SPEC-1</td><td data-htmldiff-id="TC-1">TC-1</td></tr>' +
+                    '<tr><td data-htmldiff-id="TC-2">TC-2</td></tr><tr><td>plain</td><td>row</td></tr></tbody></table>',
+            );
+            MergedCells.expand(table, "new");
+            const v = TableVersion.read(table);
+            expect(v.rowKeysByRow()).to.deep.equal([["SPEC-1", "TC-1"], ["SPEC-1", "TC-2"], []]);
+            expect(version("<table><tbody><tr><td>a</td></tr></tbody></table>").rowKeysByRow()).to.deep.equal([[]]);
+        });
     });
 
     describe("groups", () => {

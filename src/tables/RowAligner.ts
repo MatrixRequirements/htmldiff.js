@@ -4,8 +4,22 @@
  */
 import { last, range } from "./helpers";
 import { Alignment, SameAlignment, SequenceAligner } from "./SequenceAligner";
-import { cellSimilarity } from "./similarity";
+import { signatureWords, wordSimilarity } from "./similarity";
 import { TableVersion } from "./TableVersion";
+
+/** What a row says on the compared columns, read once: every old row is compared with every new one. */
+interface RowContent {
+    /** Per compared column. */
+    signatures: string[];
+    /** Per compared column, the distinct words of the signature. */
+    words: string[][];
+    /** Nothing on any compared column. */
+    blank: boolean;
+    /** The producer's keys of the row, when the table is keyed. */
+    keys: string[];
+    /** Rows with the same key are exactly the same row; an integer, so the exact pass only compares numbers. */
+    exactKey: number;
+}
 
 /** Which row of the old table is which row of the new one. */
 export class RowAligner {
@@ -37,42 +51,87 @@ export class RowAligner {
      * @returns The row alignments.
      */
     align(): Alignment[] {
-        const oldVersion = this.oldVersion;
-        const newVersion = this.newVersion;
-        const comparedColumns = this.comparedColumns;
-        const keyed = oldVersion.hasRowKeys && newVersion.hasRowKeys;
-        const sameKeys = (oldKeys: string[], newKeys: string[]): boolean =>
-            oldKeys.length === newKeys.length && oldKeys.every((key, index) => key === newKeys[index]);
+        const keyed = this.oldVersion.hasRowKeys && this.newVersion.hasRowKeys;
+        const exactKeys = new Map<string, number>();
+        const oldRows = RowAligner.readRows(
+            this.oldVersion,
+            this.comparedColumns.map((column) => column.oldIndex),
+            keyed,
+            exactKeys,
+        );
+        const newRows = RowAligner.readRows(
+            this.newVersion,
+            this.comparedColumns.map((column) => column.newIndex),
+            keyed,
+            exactKeys,
+        );
 
+        // the share of what the cells said that is still there, averaged over the columns that
+        // say anything; the same keys are the same row, other keys another row
         const similarity = (oldIndex: number, newIndex: number): number => {
+            const oldRow = oldRows[oldIndex];
+            const newRow = newRows[newIndex];
             if (keyed) {
-                return sameKeys(oldVersion.rowKeys(oldIndex), newVersion.rowKeys(newIndex)) ? 1 : 0;
+                return oldRow.exactKey === newRow.exactKey ? 1 : 0;
             }
             let compared = 0;
             let kept = 0;
-            comparedColumns.forEach((column) => {
-                const oldSignature = oldVersion.signatureAt(oldIndex, column.oldIndex);
-                const newSignature = newVersion.signatureAt(newIndex, column.newIndex);
+            oldRow.signatures.forEach((oldSignature, column) => {
+                const newSignature = newRow.signatures[column];
                 if (oldSignature === "" && newSignature === "") {
                     return;
                 }
                 compared++;
-                kept += cellSimilarity(oldSignature, newSignature);
+                kept += oldSignature === newSignature ? 1 : wordSimilarity(oldRow.words[column], newRow.words[column]);
             });
             return compared === 0 ? NaN : kept / compared;
         };
+        // similarity is 1 exactly when every column that says anything keeps the same words, or
+        // the keys are the same: two blank rows have no similarity at all
+        const isExact = (oldIndex: number, newIndex: number): boolean => {
+            const oldRow = oldRows[oldIndex];
+            const newRow = newRows[newIndex];
+            return oldRow.exactKey === newRow.exactKey && (keyed || !(oldRow.blank && newRow.blank));
+        };
 
         return new SequenceAligner({
-            oldCount: oldVersion.rows.length,
-            newCount: newVersion.rows.length,
+            oldCount: oldRows.length,
+            newCount: newRows.length,
             similarity,
+            isExact,
             byPosition: {
-                isOldBlank: (oldIndex) => comparedColumns.every((column) => oldVersion.signatureAt(oldIndex, column.oldIndex) === ""),
-                isNewBlank: (newIndex) => comparedColumns.every((column) => newVersion.signatureAt(newIndex, column.newIndex) === ""),
-                hasOldIdentity: (oldIndex) => keyed && oldVersion.rowKeys(oldIndex).length > 0,
-                hasNewIdentity: (newIndex) => keyed && newVersion.rowKeys(newIndex).length > 0,
+                isOldBlank: (oldIndex) => oldRows[oldIndex].blank,
+                isNewBlank: (newIndex) => newRows[newIndex].blank,
+                hasOldIdentity: (oldIndex) => keyed && oldRows[oldIndex].keys.length > 0,
+                hasNewIdentity: (newIndex) => keyed && newRows[newIndex].keys.length > 0,
             },
         }).align();
+    }
+
+    /**
+     * Reads what every row says on the compared columns.
+     * @param version The version.
+     * @param columnIndexes The compared columns of this version.
+     * @param keyed Whether the keys name the rows.
+     * @param exactKeys The keys seen so far, shared by both versions.
+     * @returns The rows.
+     */
+    private static readRows(version: TableVersion, columnIndexes: number[], keyed: boolean, exactKeys: Map<string, number>): RowContent[] {
+        const keysByRow = keyed ? version.rowKeysByRow() : [];
+        return range(0, version.rows.length).map((rowIndex) => {
+            const signatures = columnIndexes.map((columnIndex) => version.signatureAt(rowIndex, columnIndex));
+            const words = signatures.map((signature) => signatureWords(signature));
+            const keys = keyed ? keysByRow[rowIndex] : [];
+            // keyed: the keys in order. else: the set of words of every column, columns apart
+            // (words never contain whitespace or '|')
+            const exactKey = keyed ? JSON.stringify(keys) : words.map((cellWords) => cellWords.slice().sort().join(" ")).join("|");
+            let interned = exactKeys.get(exactKey);
+            if (interned === undefined) {
+                interned = exactKeys.size;
+                exactKeys.set(exactKey, interned);
+            }
+            return { signatures, words, blank: signatures.every((signature) => signature === ""), keys, exactKey: interned };
+        });
     }
 
     /**

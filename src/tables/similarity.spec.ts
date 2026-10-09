@@ -1,5 +1,15 @@
 import { expect } from "chai";
-import { cellSimilarity, countsSize, countValues, distinctSharedShare, retainedShare, sharedShare, valueOverlap } from "./similarity";
+import {
+    cellSimilarity,
+    countsSize,
+    countValues,
+    distinctSharedShare,
+    retainedShare,
+    sharedShare,
+    signatureWords,
+    valueOverlap,
+    wordSimilarity,
+} from "./similarity";
 
 describe("similarity", () => {
     describe("countValues", () => {
@@ -64,6 +74,33 @@ describe("similarity", () => {
 
         it("is 1 for two empty cells", () => {
             expect(cellSimilarity("", "")).to.equal(1);
+        });
+    });
+
+    describe("signatureWords", () => {
+        it("lists the distinct words of a signature in order", () => {
+            expect(signatureWords("b a|X b")).to.deep.equal(["b", "a", "X"]);
+            expect(signatureWords("")).to.deep.equal([]);
+            expect(signatureWords(" | ")).to.deep.equal([]);
+        });
+    });
+
+    describe("wordSimilarity", () => {
+        it("is cellSimilarity on the words read once", () => {
+            const pairs = [
+                ["a b c", "a b d"],
+                ["same", "same"],
+                ["x", "y"],
+                ["a b|X", "a c|X"],
+                ["", ""],
+                ["", "x"],
+                ["b a", "a b"],
+                ["a a", "a"],
+                ["|", ""],
+            ];
+            pairs.forEach(([oldSignature, newSignature]) => {
+                expect(wordSimilarity(signatureWords(oldSignature), signatureWords(newSignature))).to.equal(cellSimilarity(oldSignature, newSignature));
+            });
         });
     });
 });

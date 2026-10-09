@@ -38,5 +38,5 @@ export function last<T>(array: T[]): T | undefined {
  * @returns The distinct values.
  */
 export function uniqueValues<T>(values: T[]): T[] {
-    return values.filter((value, index) => values.indexOf(value) === index);
+    return Array.from(new Set(values));
 }
