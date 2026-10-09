@@ -94,6 +94,17 @@ describe("SequenceAligner", () => {
             ]);
         });
 
+        it("anchors on isExact when the sequence gives one", () => {
+            const seq = sequence(["a", "b"], ["x", "y"]);
+            // similarity never reaches 1 on its own, isExact alone decides the exact pass
+            seq.similarity = () => 0;
+            seq.isExact = (o, n) => o === n;
+            expect(new SequenceAligner(seq).align()).to.deep.equal([
+                { kind: "same", oldIndex: 0, newIndex: 0 },
+                { kind: "same", oldIndex: 1, newIndex: 1 },
+            ]);
+        });
+
         it("pairs similar entries inside the gaps", () => {
             const seq = sequence(["a", "x", "c"], ["a", "y", "c"]);
             seq.similarity = (o, n) => (o === n ? (o === 1 ? 0.6 : 1) : 0);
