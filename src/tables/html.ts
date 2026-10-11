@@ -90,8 +90,16 @@ export function findElements(html: string, tagNames: string[]): Element[] {
     return elements;
 }
 
+// attributes are read in every hot loop of the table pass, one compiled pattern per name
+const attributeRegExps = new Map<string, RegExp>();
+
 function attributeRegExp(name: string): RegExp {
-    return new RegExp("(\\s" + name + ")(\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s\"'>]+))?(?=[\\s/>])", "i");
+    let regExp = attributeRegExps.get(name);
+    if (!regExp) {
+        regExp = new RegExp("(\\s" + name + ")(\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s\"'>]+))?(?=[\\s/>])", "i");
+        attributeRegExps.set(name, regExp);
+    }
+    return regExp;
 }
 
 function unquote(value: string): string {

@@ -13,6 +13,11 @@ describe("Diff", () => {
         it("should return the text", () => {
             expect(res).equal("input text");
         });
+
+        it("should return the input as it is, tables included", () => {
+            const html = "<p>t</p><table><tbody><tr>\n<td>a</td> <td>b</td>\n</tr></tbody></table>";
+            expect(cut(html, html)).to.equal(html);
+        });
     });
 
     describe("When a letter is added", () => {

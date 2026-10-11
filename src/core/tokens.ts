@@ -154,14 +154,13 @@ function isEndOfHtmlComment(word: string): boolean {
 }
 
 /**
- * Inspects the last tag in the given string, its slice from the final '<'. A '>' before the
- * slice's end means text follows e.g. "a > b" in a <script>, not a clean tag, so returns false.
- * @param word The characters read so far.
+ * Inspects the last tag read, the text from its final '<'. A '>' before the text's end means
+ * text follows e.g. "a > b" in a <script>, not a clean tag, so returns false.
+ * @param tagText The characters from the last '<' read up to the current one.
  * @param tag The tag name.
- * @returns True if word ends with an opening (non-self-closing) tag for the given tag name.
+ * @returns True if the text is an opening (non-self-closing) tag for the given tag name.
  */
-function isOpeningTagOf(word: string, tag: string): boolean {
-    const tagText = word.substring(word.lastIndexOf("<"));
+function isOpeningTagOf(tagText: string, tag: string): boolean {
     if (tagText.indexOf(">") !== tagText.length - 1) {
         return false;
     }
@@ -169,14 +168,13 @@ function isOpeningTagOf(word: string, tag: string): boolean {
 }
 
 /**
- * Inspects the last tag in the given string, its slice from the final '<'. A '>' before the
- * slice's end means text follows e.g. "a > b" in a <script>, not a clean tag, so returns false.
- * @param word The characters read so far.
+ * Inspects the last tag read, the text from its final '<'. A '>' before the text's end means
+ * text follows e.g. "a > b" in a <script>, not a clean tag, so returns false.
+ * @param tagText The characters from the last '<' read up to the current one.
  * @param tag The tag name.
- * @returns True if word ends with a closing tag for the given tag name.
+ * @returns True if the text is a closing tag for the given tag name.
  */
-function isClosingTagOf(word: string, tag: string): boolean {
-    const tagText = word.substring(word.lastIndexOf("<"));
+function isClosingTagOf(tagText: string, tag: string): boolean {
     if (tagText.indexOf(">") !== tagText.length - 1) {
         return false;
     }
@@ -203,6 +201,10 @@ export function htmlToTokens(html: string): Token[] {
     // mode is limited to that region: quotes in the element's content (text
     // apostrophes, comments, nested tags) must not affect how the token ends.
     let inAtomicOpeningTag = false;
+    // Where the last '<' read stands in the html: the tag being read inside an atomic
+    // element is inspected there, instead of searching back through the whole token on
+    // every '>', which made a large atomic element (a merged table) cost its size per tag.
+    let lastTagStart = -1;
     const words: Token[] = [];
 
     /**
@@ -229,6 +231,9 @@ export function htmlToTokens(html: string): Token[] {
 
     for (let i = 0; i < html.length; i++) {
         const char = html[i];
+        if (isStartOfTag(char)) {
+            lastTagStart = i;
+        }
         switch (mode) {
             case "tag": {
                 // Quote handling must come before the atomic tag detection:
@@ -289,7 +294,10 @@ export function htmlToTokens(html: string): Token[] {
                 // end the atomic token only when it returns to 0.
                 if (isEndOfTag(char)) {
                     inAtomicOpeningTag = false;
-                    if (isClosingTagOf(currentWord, currentAtomicTag)) {
+                    // the current word holds the html from the element's '<' up to here, so
+                    // its last tag is the html from the last '<' up to here
+                    const tagText = html.slice(lastTagStart, i + 1);
+                    if (isClosingTagOf(tagText, currentAtomicTag)) {
                         currentAtomicTagDepth--;
                         if (currentAtomicTagDepth <= 0) {
                             words.push(createToken(currentWord));
@@ -298,10 +306,7 @@ export function htmlToTokens(html: string): Token[] {
                             currentAtomicTagDepth = 0;
                             mode = "char";
                         }
-                    } else if (
-                        currentAtomicTagDepth === 0 &&
-                        (isVoidTagName(currentAtomicTag) || /\/>$/.test(currentWord))
-                    ) {
+                    } else if (currentAtomicTagDepth === 0 && (isVoidTagName(currentAtomicTag) || html[i - 1] === "/")) {
                         // At depth 0 this '>' can only end the atomic tag's own opening
                         // tag. When the element is void or self-closing it has no
                         // content: end the token so trailing content tokenizes normally.
@@ -309,7 +314,7 @@ export function htmlToTokens(html: string): Token[] {
                         currentWord = "";
                         currentAtomicTag = "";
                         mode = "char";
-                    } else if (isOpeningTagOf(currentWord, currentAtomicTag)) {
+                    } else if (isOpeningTagOf(tagText, currentAtomicTag)) {
                         currentAtomicTagDepth++;
                     }
                 }

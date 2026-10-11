@@ -206,12 +206,17 @@ export class TableMerger {
         mergedCells.moveOwnersToKeptRows(columns, rows);
 
         const keptRows = rows.filter((row): row is SameAlignment => row.kind === "same");
-        // the last kept row of the group a row belongs to, by the merged cells of either version
+        // the groups of every kept row, by the merged cells of either version, read once: every
+        // changed row looks for its group among all kept rows
+        const keptGroupSignatures = keptRows.map((row) => newVersion.groupSignatures(row.newIndex).concat(oldVersion.groupSignatures(row.oldIndex)));
+        // the last kept row of the group a row belongs to
         const lastKeptRowOfGroup = (signatures: string[]): Row | null => {
+            if (signatures.length === 0) {
+                return null;
+            }
             let found: Row | null = null;
-            keptRows.forEach((row) => {
-                const rowSignatures = newVersion.groupSignatures(row.newIndex).concat(oldVersion.groupSignatures(row.oldIndex));
-                if (rowSignatures.some((signature) => signatures.indexOf(signature) !== -1)) {
+            keptRows.forEach((row, index) => {
+                if (keptGroupSignatures[index].some((signature) => signatures.indexOf(signature) !== -1)) {
                     found = newVersion.rows[row.newIndex];
                 }
             });
@@ -228,12 +233,12 @@ export class TableMerger {
 
         const placeDeletedRow = (tr: Row, oldIndex: number, following: Alignment[]): void => {
             const group = oldVersion.groupSignatures(oldIndex);
-            const next = following.filter(
+            const next = following.find(
                 (row): row is Exclude<Alignment, { kind: "deleted" }> =>
                     row.kind !== "deleted" &&
                     (!newVersion.isContinuationRow(row.newIndex) ||
                         newVersion.groupSignatures(row.newIndex).some((signature) => group.indexOf(signature) !== -1)),
-            )[0];
+            );
             if (next) {
                 newVersion.rows[next.newIndex].insertBefore(tr);
                 return;

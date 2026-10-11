@@ -2,3 +2,4 @@ node_modules
 htmldiff-cli.js
 js/
 .DS_Store
+htmldiff-cli.d.ts

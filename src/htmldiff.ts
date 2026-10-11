@@ -36,6 +36,11 @@ import { TableRedlining } from "./tables";
  * @returns The combined HTML content with differences wrapped in <ins> and <del> tags.
  */
 function diff(before: string, after: string, className?: string | null, dataPrefix?: string | null, atomicTags?: string | null): string {
+    // nothing changed, nothing to diff
+    if (before === after) {
+        return before;
+    }
+
     // Enable user provided atomic tag list.
     setAtomicTagsRegExp(atomicTags ? buildAtomicTagsRegExp(atomicTags) : defaultAtomicTagsRegExp);
 

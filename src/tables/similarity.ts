@@ -135,10 +135,33 @@ export function cellSimilarity(oldSignature: string, newSignature: string): numb
     if (oldSignature === newSignature) {
         return 1;
     }
-    const words = (signature: string): string[] => uniqueValues(signature.split(/[\s|]+/).filter((word) => word !== ""));
-    const oldWords = words(oldSignature);
-    const newWords = words(newSignature);
-    const shared = oldWords.filter((word) => newWords.indexOf(word) !== -1).length;
-    const total = uniqueValues(oldWords.concat(newWords)).length;
+    return wordSimilarity(signatureWords(oldSignature), signatureWords(newSignature));
+}
+
+/**
+ * The distinct words of a signature, in order, so they are read once per cell and not on every
+ * comparison.
+ * @param signature The cell's signature.
+ * @returns The words.
+ */
+export function signatureWords(signature: string): string[] {
+    return uniqueValues(signature.split(/[\s|]+/).filter((word) => word !== ""));
+}
+
+/**
+ * cellSimilarity on words read once: the share of words the two cells have in common.
+ * @param oldWords The old cell's distinct words.
+ * @param newWords The new cell's distinct words.
+ * @returns 0..1.
+ */
+export function wordSimilarity(oldWords: string[], newWords: string[]): number {
+    const newSet = new Set(newWords);
+    let shared = 0;
+    oldWords.forEach((word) => {
+        if (newSet.has(word)) {
+            shared++;
+        }
+    });
+    const total = oldWords.length + newWords.length - shared;
     return total === 0 ? 1 : shared / total;
 }

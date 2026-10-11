@@ -185,12 +185,38 @@ export class TableVersion {
      * @returns The keys.
      */
     rowKeys(rowIndex: number): string[] {
+        return TableVersion.keysOf(this.cells[rowIndex], (cell) => this.ownerOf(cell));
+    }
+
+    /**
+     * The keys of every row, rowKeys of each row read in one pass: the row alignment compares
+     * every old row with every new one and must not look the owners up again each time.
+     * @returns The keys per row.
+     */
+    rowKeysByRow(): string[][] {
         if (!this.hasRowKeys) {
-            return [];
+            return this.rows.map(() => []);
         }
+        // the first cell with a merged key is its owner, as ownerOf finds it
+        const owners = new Map<string, Cell>();
+        flatten(this.cells).forEach((cell) => {
+            if (cell.mergedKey !== null && !owners.has(cell.mergedKey)) {
+                owners.set(cell.mergedKey, cell);
+            }
+        });
+        return this.cells.map((rowCells) => TableVersion.keysOf(rowCells, (cell) => (cell.partOf === null ? cell : owners.get(cell.partOf))));
+    }
+
+    /**
+     * The identities of the key cells among some cells, a part standing for its merged cell.
+     * @param rowCells The cells, undefined past the last row.
+     * @param ownerOf The merged cell a part stands for.
+     * @returns The keys.
+     */
+    private static keysOf(rowCells: Cell[] | undefined, ownerOf: (cell: Cell) => Cell | undefined): string[] {
         const keys: string[] = [];
-        this.cells[rowIndex].forEach((cell) => {
-            const owner = this.ownerOf(cell);
+        (rowCells || []).forEach((cell) => {
+            const owner = ownerOf(cell);
             const key = owner ? owner.ownId() : null;
             if (key !== null) {
                 keys.push(key);

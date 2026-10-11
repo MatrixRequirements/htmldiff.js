@@ -47,6 +47,11 @@ export interface Sequence {
     newCount: number;
     /** 0..1, NaN when both entries are blank and carry no identity. */
     similarity: (oldIndex: number, newIndex: number) => number;
+    /**
+     * (Optional) Whether two entries are exactly the same, when the sequence can tell that
+     * cheaper than through similarity: must agree with similarity === 1.
+     */
+    isExact?: (oldIndex: number, newIndex: number) => boolean;
     byPosition: PositionalPairing;
 }
 
@@ -69,7 +74,7 @@ export class SequenceAligner {
      */
     align(): Alignment[] {
         const sequence = this.sequence;
-        const exact = (oldIndex: number, newIndex: number): boolean => sequence.similarity(oldIndex, newIndex) === 1;
+        const exact = sequence.isExact ?? ((oldIndex: number, newIndex: number): boolean => sequence.similarity(oldIndex, newIndex) === 1);
         // half the cells (rows) or values (columns) in common is enough to be the same entry, edited
         const similar = (oldIndex: number, newIndex: number): boolean => sequence.similarity(oldIndex, newIndex) >= 0.5;
         const whole: UnmatchedRange = { oldStart: 0, oldEnd: sequence.oldCount, newStart: 0, newEnd: sequence.newCount };
@@ -89,13 +94,13 @@ export class SequenceAligner {
      */
     private fillUnmatchedRanges(pairs: IndexPair[], pairUnmatched: (unmatched: UnmatchedRange) => IndexPair[]): IndexPair[] {
         const sequence = this.sequence;
-        let result: IndexPair[] = [];
+        const result: IndexPair[] = [];
         let oldStart = 0;
         let newStart = 0;
 
         pairs.concat([{ oldIndex: sequence.oldCount, newIndex: sequence.newCount }]).forEach((pair) => {
             if (pair.oldIndex > oldStart && pair.newIndex > newStart) {
-                result = result.concat(pairUnmatched({ oldStart, oldEnd: pair.oldIndex, newStart, newEnd: pair.newIndex }));
+                pairUnmatched({ oldStart, oldEnd: pair.oldIndex, newStart, newEnd: pair.newIndex }).forEach((unmatchedPair) => result.push(unmatchedPair));
             }
             if (pair.oldIndex < sequence.oldCount) {
                 result.push(pair);
@@ -171,13 +176,15 @@ export class SequenceAligner {
         const newStart = unmatched.newStart;
         const oldLength = unmatched.oldEnd - oldStart;
         const newLength = unmatched.newEnd - newStart;
-        const lengths = range(0, oldLength + 1).map(() => range(0, newLength + 1).map(() => 0));
+        // one flat table, lengths[i][j] at i * width + j, the last row and column stay 0
+        const width = newLength + 1;
+        const lengths = new Int32Array((oldLength + 1) * width);
 
         for (let i = oldLength - 1; i >= 0; i--) {
             for (let j = newLength - 1; j >= 0; j--) {
-                lengths[i][j] = matches(oldStart + i, newStart + j)
-                    ? lengths[i + 1][j + 1] + 1
-                    : Math.max(lengths[i + 1][j], lengths[i][j + 1]);
+                lengths[i * width + j] = matches(oldStart + i, newStart + j)
+                    ? lengths[(i + 1) * width + j + 1] + 1
+                    : Math.max(lengths[(i + 1) * width + j], lengths[i * width + j + 1]);
             }
         }
 
@@ -191,7 +198,7 @@ export class SequenceAligner {
                 newOffset++;
                 continue;
             }
-            if (lengths[oldOffset + 1][newOffset] >= lengths[oldOffset][newOffset + 1]) {
+            if (lengths[(oldOffset + 1) * width + newOffset] >= lengths[oldOffset * width + newOffset + 1]) {
                 oldOffset++;
                 continue;
             }

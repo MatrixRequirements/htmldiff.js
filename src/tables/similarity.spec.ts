@@ -1,5 +1,15 @@
 import { expect } from "chai";
-import { cellSimilarity, countsSize, countValues, distinctSharedShare, retainedShare, sharedShare, valueOverlap } from "./similarity";
+import {
+    cellSimilarity,
+    countsSize,
+    countValues,
+    distinctSharedShare,
+    retainedShare,
+    sharedShare,
+    signatureWords,
+    valueOverlap,
+    wordSimilarity,
+} from "./similarity";
 
 describe("similarity", () => {
     describe("countValues", () => {
@@ -64,6 +74,36 @@ describe("similarity", () => {
 
         it("is 1 for two empty cells", () => {
             expect(cellSimilarity("", "")).to.equal(1);
+        });
+    });
+
+    describe("signatureWords", () => {
+        it("lists the distinct words of a signature in order", () => {
+            expect(signatureWords("b a|X b")).to.deep.equal(["b", "a", "X"]);
+            expect(signatureWords("")).to.deep.equal([]);
+            expect(signatureWords(" | ")).to.deep.equal([]);
+        });
+    });
+
+    describe("wordSimilarity", () => {
+        it("finds the share of words in common", () => {
+            expect(wordSimilarity(["a", "b", "c"], ["a", "b", "d"])).to.equal(0.5);
+            expect(wordSimilarity(["x"], ["y"])).to.equal(0);
+        });
+
+        it("ignores word order", () => {
+            expect(wordSimilarity(["b", "a"], ["a", "b"])).to.equal(1);
+        });
+
+        it("is 1 for two empty cells and 0 when one side is empty", () => {
+            expect(wordSimilarity([], [])).to.equal(1);
+            expect(wordSimilarity([], ["x"])).to.equal(0);
+        });
+
+        it("agrees with cellSimilarity's shortcut for identical signatures", () => {
+            ["same", "", "a b|X", "a a"].forEach((signature) => {
+                expect(wordSimilarity(signatureWords(signature), signatureWords(signature)), signature).to.equal(cellSimilarity(signature, signature));
+            });
         });
     });
 });
