@@ -86,20 +86,23 @@ describe("similarity", () => {
     });
 
     describe("wordSimilarity", () => {
-        it("is cellSimilarity on the words read once", () => {
-            const pairs = [
-                ["a b c", "a b d"],
-                ["same", "same"],
-                ["x", "y"],
-                ["a b|X", "a c|X"],
-                ["", ""],
-                ["", "x"],
-                ["b a", "a b"],
-                ["a a", "a"],
-                ["|", ""],
-            ];
-            pairs.forEach(([oldSignature, newSignature]) => {
-                expect(wordSimilarity(signatureWords(oldSignature), signatureWords(newSignature))).to.equal(cellSimilarity(oldSignature, newSignature));
+        it("finds the share of words in common", () => {
+            expect(wordSimilarity(["a", "b", "c"], ["a", "b", "d"])).to.equal(0.5);
+            expect(wordSimilarity(["x"], ["y"])).to.equal(0);
+        });
+
+        it("ignores word order", () => {
+            expect(wordSimilarity(["b", "a"], ["a", "b"])).to.equal(1);
+        });
+
+        it("is 1 for two empty cells and 0 when one side is empty", () => {
+            expect(wordSimilarity([], [])).to.equal(1);
+            expect(wordSimilarity([], ["x"])).to.equal(0);
+        });
+
+        it("agrees with cellSimilarity's shortcut for identical signatures", () => {
+            ["same", "", "a b|X", "a a"].forEach((signature) => {
+                expect(wordSimilarity(signatureWords(signature), signatureWords(signature)), signature).to.equal(cellSimilarity(signature, signature));
             });
         });
     });

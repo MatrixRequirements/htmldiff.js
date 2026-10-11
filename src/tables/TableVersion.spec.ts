@@ -76,15 +76,26 @@ describe("TableVersion", () => {
             expect(v.rowKeys(1)).to.deep.equal(["SPEC-1", "TC-2"]);
         });
 
-        it("lists the keys of every row at once", () => {
+        const groupAndPlainRow = (): TableVersion => {
             const table = readTable(
                 '<table><tbody><tr><td rowspan="2" data-htmldiff-id="SPEC-1">SPEC-1</td><td data-htmldiff-id="TC-1">TC-1</td></tr>' +
                     '<tr><td data-htmldiff-id="TC-2">TC-2</td></tr><tr><td>plain</td><td>row</td></tr></tbody></table>',
             );
             MergedCells.expand(table, "new");
-            const v = TableVersion.read(table);
-            expect(v.rowKeysByRow()).to.deep.equal([["SPEC-1", "TC-1"], ["SPEC-1", "TC-2"], []]);
-            expect(version("<table><tbody><tr><td>a</td></tr></tbody></table>").rowKeysByRow()).to.deep.equal([[]]);
+            return TableVersion.read(table);
+        };
+
+        it("lists each row's keys, a merged cell's key on every row it spans", () => {
+            expect(groupAndPlainRow().rowKeysByRow()).to.deep.equal([["SPEC-1", "TC-1"], ["SPEC-1", "TC-2"], []]);
+        });
+
+        it("lists no keys for any row of a table without keys", () => {
+            expect(version("<table><tbody><tr><td>a</td></tr><tr><td>b</td></tr></tbody></table>").rowKeysByRow()).to.deep.equal([[], []]);
+        });
+
+        it("lists the same keys as rowKeys row by row", () => {
+            const v = groupAndPlainRow();
+            expect(v.rowKeysByRow()).to.deep.equal(v.rows.map((_row, rowIndex) => v.rowKeys(rowIndex)));
         });
     });
 
