@@ -98,5 +98,35 @@ describe("html", () => {
                 ]),
             ).to.equal("0YY3456X9");
         });
+
+        it("applies adjacent replacements", () => {
+            expect(
+                replaceRanges("aabbcc", [
+                    { start: 2, end: 4, html: "B" },
+                    { start: 0, end: 2, html: "A" },
+                ]),
+            ).to.equal("ABcc");
+        });
+
+        it("inserts at an empty range", () => {
+            expect(replaceRanges("abcd", [{ start: 2, end: 2, html: "X" }])).to.equal("abXcd");
+        });
+
+        it("returns the html when there are no replacements", () => {
+            expect(replaceRanges("abcd", [])).to.equal("abcd");
+        });
+
+        it("replaces every table and keeps the html between them", () => {
+            const html = "<p>a</p><table>1</table><p>b</p><table>2</table><p>c</p><table>3</table>";
+            const replacements = findElements(html, ["table"]).map((table, index) => ({
+                start: table.start,
+                end: table.end,
+                html: `<table id="${index}"></table>`,
+            }));
+
+            expect(replaceRanges(html, replacements)).to.equal(
+                '<p>a</p><table id="0"></table><p>b</p><table id="1"></table><p>c</p><table id="2"></table>',
+            );
+        });
     });
 });

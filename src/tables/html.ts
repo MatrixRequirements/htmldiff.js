@@ -183,14 +183,22 @@ export function decodeEntities(text: string): string {
 }
 
 /**
- * Applies replacements to the html, from the back so the positions stay valid.
+ * Applies replacements to the html in one pass: the kept parts and the replacements are joined
+ * once, so a document with many tables is not copied whole for every table.
  * @param html The html.
  * @param replacements Non overlapping replacements.
  * @returns The html with the replacements applied.
  */
 export function replaceRanges(html: string, replacements: Replacement[]): string {
-    return replacements
+    const parts: string[] = [];
+    let position = 0;
+    replacements
         .slice()
-        .sort((first, second) => second.start - first.start)
-        .reduce((result, replacement) => result.slice(0, replacement.start) + replacement.html + result.slice(replacement.end), html);
+        .sort((first, second) => first.start - second.start)
+        .forEach((replacement) => {
+            parts.push(html.slice(position, replacement.start), replacement.html);
+            position = replacement.end;
+        });
+    parts.push(html.slice(position));
+    return parts.join("");
 }
